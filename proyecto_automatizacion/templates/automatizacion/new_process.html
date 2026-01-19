@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% load static %}
+
+<!-- TEMPLATE PRINCIPAL DEL PROYECTO - NOVIEMBRE 2025 -->
+{% block title %}Nuevo Proceso - Sistema de Automatización{% endblock %}
+
+{% block page_title %}
+    <i class="pe-7s-plus text-white"></i>
+    Nuevo Proceso de Automatización
+{% endblock %}
+
+{% block content %}
+<div class="main-card mb-3 card">
+    <div class="card-header">
+        <div class="card-header-title">
+            <i class="pe-7s-file text-primary me-2"></i>
+            Seleccionar Origen de Datos
+        </div>
+        
+        <!-- Breadcrumb integrado en el header -->
+        <div class="btn-actions-pane-right">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb breadcrumb-sm mb-0">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'automatizacion:index' %}" class="text-decoration-none">Inicio</a>
+                    </li>
+                    <li class="breadcrumb-item active">Nuevo Proceso</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    <div class="card-body">
+        <div class="row g-4">
+            <!-- Excel Option -->
+            <div class="col-lg-4 col-md-6">
+                <div class="source-type-card h-100" data-type="excel">
+                    <div class="source-icon">
+                        <i class="fas fa-file-excel text-success"></i>
+                    </div>
+                    <div class="source-content">
+                        <h5 class="source-title">Excel (.xlsx)</h5>
+                        <p class="source-description">Importa datos desde hojas de cálculo Excel con soporte para múltiples hojas</p>
+                        <ul class="source-features">
+                            <li><i class="pe-7s-check text-success me-1"></i>Múltiples hojas</li>
+                            <li><i class="pe-7s-check text-success me-1"></i>Detección automática</li>
+                            <li><i class="pe-7s-check text-success me-1"></i>Validación de tipos</li>
+                        </ul>
+                    </div>
+                    <div class="source-action">
+                        <a href="{% url 'automatizacion:upload_excel' %}" class="btn btn-success btn-block">
+                            <i class="pe-7s-upload me-2"></i>Seleccionar Excel
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- CSV Option -->
+            <div class="col-lg-4 col-md-6">
+                <div class="source-type-card h-100" data-type="csv">
+                    <div class="source-icon">
+                        <i class="fas fa-file-csv text-warning"></i>
+                    </div>
+                    <div class="source-content">
+                        <h5 class="source-title">CSV</h5>
+                        <p class="source-description">Importa datos desde archivos de valores separados por comas</p>
+                        <ul class="source-features">
+                            <li><i class="pe-7s-check text-success me-1"></i>Delimitadores personalizados</li>
+                            <li><i class="pe-7s-check text-success me-1"></i>Codificación UTF-8</li>
+                            <li><i class="pe-7s-check text-success me-1"></i>Procesamiento rápido</li>
+                        </ul>
+                    </div>
+                    <div class="source-action">
+                        <a href="{% url 'automatizacion:upload_excel' %}?type=csv" class="btn btn-warning btn-block">
+                            <i class="pe-7s-upload me-2"></i>Seleccionar CSV
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- SQL Server Option -->
+            <div class="col-lg-4 col-md-12">
+                <div class="source-type-card h-100" data-type="sql">
+                    <div class="source-icon">
+                        <i class="fas fa-database text-primary"></i>
+                    </div>
+                    <div class="source-content">
+                        <h5 class="source-title">SQL Server</h5>
+                        <p class="source-description">Conecta directamente a una base de datos SQL Server existente</p>
+                        <ul class="source-features">
+                            <li><i class="pe-7s-check text-success me-1"></i>Conexión directa</li>
+                            <li><i class="pe-7s-check text-success me-1"></i>Consultas personalizadas</li>
+                            <li><i class="pe-7s-check text-success me-1"></i>Alta velocidad</li>
+                        </ul>
+                    </div>
+                    <div class="source-action">
+                        <a href="{% url 'automatizacion:connect_sql' %}" class="btn btn-primary btn-block">
+                            <i class="pe-7s-server me-2"></i>Nueva Conexión
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Conexiones SQL Guardadas -->
+{% if connections %}
+<div class="main-card mb-3 card">
+    <div class="card-header">
+        <div class="card-header-title">
+            <i class="pe-7s-server text-primary me-2"></i>
+            Conexiones SQL Recientes
+        </div>
+        <div class="btn-actions-pane-right">
+            <span class="badge bg-primary">{{ connections|length }}/5</span>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="connections-quick-list">
+            {% for connection in connections %}
+                <div class="connection-quick-item p-3 border-bottom {% if forloop.last %}border-0{% endif %}">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center">
+                                <div class="connection-icon me-3">
+                                    <i class="pe-7s-database text-primary fs-4"></i>
+                                </div>
+                                <div class="connection-info">
+                                    <h6 class="connection-name mb-1 text-dark">{{ connection.name }}</h6>
+                                    <div class="connection-details">
+                                        <small class="text-muted d-block">
+                                            <i class="pe-7s-server me-1"></i>{{ connection.server }}/{{ connection.database }}
+                                        </small>
+                                        <small class="text-muted">
+                                            <i class="pe-7s-clock me-1"></i>
+                                            {% if connection.last_used %}
+                                                Usado {{ connection.last_used|timesince }} ago
+                                            {% else %}
+                                                <span class="text-warning">Nunca usado</span>
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="connection-actions">
+                                <a href="{% url 'automatizacion:view_connection' connection.id %}" 
+                                   class="btn btn-sm btn-outline-info me-2" 
+                                   title="Ver detalles">
+                                    <i class="pe-7s-look"></i>
+                                </a>
+                                <a href="{% url 'automatizacion:list_sql_tables' connection.id %}" 
+                                   class="btn btn-sm btn-primary" 
+                                   title="Usar esta conexión">
+                                    <i class="pe-7s-link me-1"></i>
+                                    Conectar
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="card-footer bg-light">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="footer-info">
+                <small class="text-muted">
+                    <i class="pe-7s-info me-1"></i>
+                    Mostrando últimas 5 conexiones usadas
+                </small>
+            </div>
+            <div class="footer-actions">
+                <a href="{% url 'automatizacion:connect_sql' %}" 
+                   class="btn btn-sm btn-success me-2" 
+                   title="Nueva conexión SQL">
+                    <i class="pe-7s-plus me-1"></i>
+                    Nueva
+                </a>
+                <a href="{% url 'automatizacion:list_connections' %}" 
+                   class="btn btn-sm btn-outline-primary" 
+                   title="Ver todas las conexiones">
+                    <i class="pe-7s-search me-1"></i>
+                    Explorar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'automatizacion/styles/new_process.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Añadir efectos hover adicionales para las cards
+    $('.source-type-card').on('mouseenter', function() {
+        $(this).find('.btn-block').addClass('shadow');
+    }).on('mouseleave', function() {
+        $(this).find('.btn-block').removeClass('shadow');
+    });
+    
+    // Efecto ripple al hacer clic
+    $('.source-type-card').on('click', function(e) {
+        var ripple = $('<span class="ripple"></span>');
+        var offset = $(this).offset();
+        var x = e.pageX - offset.left;
+        var y = e.pageY - offset.top;
+        
+        ripple.css({
+            position: 'absolute',
+            left: x + 'px',
+            top: y + 'px',
+            width: '0',
+            height: '0',
+            borderRadius: '50%',
+            background: 'rgba(14, 116, 144, 0.3)',
+            transform: 'translate(-50%, -50%)',
+            animation: 'ripple-effect 0.6s ease-out'
+        });
+        
+        $(this).append(ripple);
+        
+        setTimeout(() => ripple.remove(), 600);
+    });
+    
+    console.log('New Process template cargado correctamente');
+});
+
+// Añadir animación ripple
+var style = document.createElement('style');
+style.textContent = `
+    @keyframes ripple-effect {
+        to {
+            width: 200px;
+            height: 200px;
+            opacity: 0;
+        }
+    }
+    
+    .ripple {
+        pointer-events: none;
+        z-index: 1;
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

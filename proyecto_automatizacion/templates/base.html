@@ -1,0 +1,674 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Sistema de Automatización Excel-SQL</title>
+    <link rel="stylesheet" href="{% static 'automatizacion/styles/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'automatizacion/styles/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'automatizacion/styles/bootstrap-icons.css' %}">
+    <link rel="stylesheet" href="{% static 'automatizacion/styles/fontawesome.min.css' %}">
+    <link rel="stylesheet" href="{% static 'automatizacion/styles/material-components-web.min.css' %}">
+    <link rel="stylesheet" href="{% static 'automatizacion/styles/icon.css' %}">
+    <link rel="stylesheet" href="{% static 'automatizacion/styles/pe7sicons.css' %}">
+    <link rel="stylesheet" href="{% static 'automatizacion/styles/all.min.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="shortcut icon" href="{% static 'automatizacion/img/favicon-bios-new.ico' %}" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Estilos básicos para ocultar los formularios por defecto */
+        #form-container, #upload-container {
+            display: none;
+        }
+
+        /* From Uiverse.io by Nawsome */ 
+.wheel-and-hamster {
+  --dur: 1s;
+  position: fixed; /* Cambiado de relative a fixed */
+  top: 90%;
+  left: 11%;
+  transform: translate(-70%, -70%); /* Centrado absoluto */
+  width: 12em;
+  height: 12em;
+  font-size: 14px;
+  z-index: 50; /* Asegura que esté por encima del resto del contenido */
+  pointer-events: none; /* Evita bloquear interacción si no usas fondo */
+}
+
+.wheel,
+.hamster,
+.hamster div,
+.spoke {
+  position: absolute;
+}
+
+.wheel,
+.spoke {
+  border-radius: 50%;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.wheel {
+  position: absolute;
+  border-radius: 50%;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  background: radial-gradient(circle at center, rgba(14, 116, 144, 0.2) 40%, rgba(14, 116, 144, 0.5) 100%);
+  border: 4px solid #0e7490; /* Cyan-700 */
+  box-shadow: 0 0 15px rgba(14, 116, 144, 0.7), inset 0 0 10px rgba(14, 116, 144, 0.4);
+}
+
+
+.hamster {
+  animation: hamster var(--dur) ease-in-out infinite;
+  top: 50%;
+  left: calc(50% - 3.5em);
+  width: 7em;
+  height: 3.75em;
+  transform: rotate(4deg) translate(-0.8em,1.85em);
+  transform-origin: 50% 0;
+  z-index: 2;
+}
+
+.hamster__head {
+  animation: hamsterHead var(--dur) ease-in-out infinite;
+  background: hsl(30,90%,55%);
+  border-radius: 70% 30% 0 100% / 40% 25% 25% 60%;
+  box-shadow: 0 -0.25em 0 hsl(30,90%,80%) inset,
+		0.75em -1.55em 0 hsl(30,90%,90%) inset;
+  top: 0;
+  left: -2em;
+  width: 2.75em;
+  height: 2.5em;
+  transform-origin: 100% 50%;
+}
+
+.hamster__ear {
+  animation: hamsterEar var(--dur) ease-in-out infinite;
+  background: hsl(0,90%,85%);
+  border-radius: 50%;
+  box-shadow: -0.25em 0 hsl(30,90%,55%) inset;
+  top: -0.25em;
+  right: -0.25em;
+  width: 0.75em;
+  height: 0.75em;
+  transform-origin: 50% 75%;
+}
+
+.hamster__eye {
+  animation: hamsterEye var(--dur) linear infinite;
+  background-color: hsl(0,0%,0%);
+  border-radius: 50%;
+  top: 0.375em;
+  left: 1.25em;
+  width: 0.5em;
+  height: 0.5em;
+}
+
+.hamster__nose {
+  background: hsl(0,90%,75%);
+  border-radius: 35% 65% 85% 15% / 70% 50% 50% 30%;
+  top: 0.75em;
+  left: 0;
+  width: 0.2em;
+  height: 0.25em;
+}
+
+.hamster__body {
+  animation: hamsterBody var(--dur) ease-in-out infinite;
+  background: hsl(30,90%,90%);
+  border-radius: 50% 30% 50% 30% / 15% 60% 40% 40%;
+  box-shadow: 0.1em 0.75em 0 hsl(30,90%,55%) inset,
+		0.15em -0.5em 0 hsl(30,90%,80%) inset;
+  top: 0.25em;
+  left: 2em;
+  width: 4.5em;
+  height: 3em;
+  transform-origin: 17% 50%;
+  transform-style: preserve-3d;
+}
+
+.hamster__limb--fr,
+.hamster__limb--fl {
+  clip-path: polygon(0 0,100% 0,70% 80%,60% 100%,0% 100%,40% 80%);
+  top: 2em;
+  left: 0.5em;
+  width: 1em;
+  height: 1.5em;
+  transform-origin: 50% 0;
+}
+
+.hamster__limb--fr {
+  animation: hamsterFRLimb var(--dur) linear infinite;
+  background: linear-gradient(hsl(30,90%,80%) 80%,hsl(0,90%,75%) 80%);
+  transform: rotate(15deg) translateZ(-1px);
+}
+
+.hamster__limb--fl {
+  animation: hamsterFLLimb var(--dur) linear infinite;
+  background: linear-gradient(hsl(30,90%,90%) 80%,hsl(0,90%,85%) 80%);
+  transform: rotate(15deg);
+}
+
+.hamster__limb--br,
+.hamster__limb--bl {
+  border-radius: 0.75em 0.75em 0 0;
+  clip-path: polygon(0 0,100% 0,100% 30%,70% 90%,70% 100%,30% 100%,40% 90%,0% 30%);
+  top: 1em;
+  left: 2.8em;
+  width: 1.5em;
+  height: 2.5em;
+  transform-origin: 50% 30%;
+}
+
+.hamster__limb--br {
+  animation: hamsterBRLimb var(--dur) linear infinite;
+  background: linear-gradient(hsl(30,90%,80%) 90%,hsl(0,90%,75%) 90%);
+  transform: rotate(-25deg) translateZ(-1px);
+}
+
+.hamster__limb--bl {
+  animation: hamsterBLLimb var(--dur) linear infinite;
+  background: linear-gradient(hsl(30,90%,90%) 90%,hsl(0,90%,85%) 90%);
+  transform: rotate(-25deg);
+}
+
+.hamster__tail {
+  animation: hamsterTail var(--dur) linear infinite;
+  background: hsl(0,90%,85%);
+  border-radius: 0.25em 50% 50% 0.25em;
+  box-shadow: 0 -0.2em 0 hsl(0,90%,75%) inset;
+  top: 1.5em;
+  right: -0.5em;
+  width: 1em;
+  height: 0.5em;
+  transform: rotate(30deg) translateZ(-1px);
+  transform-origin: 0.25em 0.25em;
+}
+
+.spoke {
+  animation: spoke var(--dur) linear infinite;
+  background:
+    radial-gradient(
+      100% 100% at center,
+      #0e7490 5%,
+      transparent 6%
+    ),
+    repeating-conic-gradient(
+      from 0deg,
+      rgba(14, 116, 144, 0.6) 0deg 5deg,
+      transparent 5deg 10deg
+    );
+  border-radius: 50%;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+@keyframes spoke {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(1turn);
+  }
+}
+
+/* Animations */
+@keyframes hamster {
+  from, to {
+    transform: rotate(4deg) translate(-0.8em,1.85em);
+  }
+
+  50% {
+    transform: rotate(0) translate(-0.8em,1.85em);
+  }
+}
+
+@keyframes hamsterHead {
+  from, 25%, 50%, 75%, to {
+    transform: rotate(0);
+  }
+
+  12.5%, 37.5%, 62.5%, 87.5% {
+    transform: rotate(8deg);
+  }
+}
+
+@keyframes hamsterEye {
+  from, 90%, to {
+    transform: scaleY(1);
+  }
+
+  95% {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes hamsterEar {
+  from, 25%, 50%, 75%, to {
+    transform: rotate(0);
+  }
+
+  12.5%, 37.5%, 62.5%, 87.5% {
+    transform: rotate(12deg);
+  }
+}
+
+@keyframes hamsterBody {
+  from, 25%, 50%, 75%, to {
+    transform: rotate(0);
+  }
+
+  12.5%, 37.5%, 62.5%, 87.5% {
+    transform: rotate(-2deg);
+  }
+}
+
+@keyframes hamsterFRLimb {
+  from, 25%, 50%, 75%, to {
+    transform: rotate(50deg) translateZ(-1px);
+  }
+
+  12.5%, 37.5%, 62.5%, 87.5% {
+    transform: rotate(-30deg) translateZ(-1px);
+  }
+}
+
+@keyframes hamsterFLLimb {
+  from, 25%, 50%, 75%, to {
+    transform: rotate(-30deg);
+  }
+
+  12.5%, 37.5%, 62.5%, 87.5% {
+    transform: rotate(50deg);
+  }
+}
+
+@keyframes hamsterBRLimb {
+  from, 25%, 50%, 75%, to {
+    transform: rotate(-60deg) translateZ(-1px);
+  }
+
+  12.5%, 37.5%, 62.5%, 87.5% {
+    transform: rotate(20deg) translateZ(-1px);
+  }
+}
+
+@keyframes hamsterBLLimb {
+  from, 25%, 50%, 75%, to {
+    transform: rotate(20deg);
+  }
+
+  12.5%, 37.5%, 62.5%, 87.5% {
+    transform: rotate(-60deg);
+  }
+}
+
+@keyframes hamsterTail {
+  from, 25%, 50%, 75%, to {
+    transform: rotate(30deg) translateZ(-1px);
+  }
+
+  12.5%, 37.5%, 62.5%, 87.5% {
+    transform: rotate(10deg) translateZ(-1px);
+  }
+}
+
+@keyframes spoke {
+  from {
+    transform: rotate(0);
+  }
+
+  to {
+    transform: rotate(-1turn);
+  }
+}
+
+    }
+    
+    /* Estilos adicionales para mejorar la apariencia */
+    .app-main__inner {
+        padding: 20px;
+        min-height: calc(100vh - 120px);
+        background-color: #fafafa;
+    }
+    
+    /* Mejoras para el sidebar */
+    .app-sidebar {
+        box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        z-index: 1000;
+    }
+    
+    .app-sidebar__inner {
+        background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+    }
+    
+    .vertical-nav-menu li a {
+        transition: all 0.3s ease;
+        border-radius: 4px;
+        margin: 2px 8px;
+    }
+    
+    .vertical-nav-menu li a:hover {
+        background: linear-gradient(45deg, #e0f2f1, #b2dfdb);
+        transform: translateX(5px);
+    }
+    
+    /* Mejoras para el navbar */
+    .app-header {
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        z-index: 1001;
+    }
+    
+    .app-page-title {
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        color: #ffffff;
+        padding: 25px 20px;
+        margin: -20px -20px 25px -20px;
+        border-radius: 0 0 15px 15px;
+        box-shadow: 0 4px 15px rgba(44, 62, 80, 0.3);
+        border-left: 4px solid #0e7490;
+    }
+    
+    .page-title-wrapper {
+        display: flex;
+        align-items: center;
+    }
+    
+    .page-title-heading {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-weight: 600;
+        font-size: 1.4rem;
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+        letter-spacing: 0.5px;
+    }
+    
+    .page-title-icon {
+        margin-right: 15px;
+    }
+    
+    .page-title-icon i {
+        font-size: 1.6rem;
+        filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.3));
+    }
+    
+    .page-title-heading {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .page-title-icon i {
+        font-size: 2rem;
+        opacity: 0.9;
+    }
+    
+    .main-card {
+        border: none;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border-radius: 10px;
+    }
+    
+    .app-wrapper-footer {
+        background: #f8f9fa;
+        border-top: 1px solid #e9ecef;
+        padding: 15px 20px;
+        margin-top: auto;
+    }
+    
+    .app-footer-wrapper {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .dots-separator {
+        width: 6px;
+        height: 6px;
+        background: #0891b2;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 5px;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .app-main__inner {
+            padding: 15px;
+            margin-top: 50px;
+        }
+        
+        .app-page-title {
+            margin: -15px -15px 15px -15px;
+            padding: 15px;
+        }
+        
+        .page-title-icon i {
+            font-size: 1.5rem;
+        }
+        
+        .vertical-nav-menu li a {
+            margin: 1px 4px;
+        }
+    }
+    
+    /* Smooth animations */
+    * {
+        transition: background-color 0.2s ease, transform 0.2s ease;
+    }
+    
+    /* Button improvements */
+    .btn {
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    /* Container improvements */
+    .container-fluid {
+        padding: 0 30px;
+    }
+    
+    @media (max-width: 768px) {
+        .container-fluid {
+            padding: 0 15px;
+        }
+        
+        .app-page-title {
+            padding: 15px;
+            margin: -15px -15px 15px -15px;
+        }
+        
+        .page-title-heading {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+    }
+
+    </style>
+    
+    <!-- Bloque para estilos CSS adicionales de las páginas -->
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <div class="app-container app-theme-white">
+        <header>
+            {% include 'components/navbarGB.html' %}
+        </header>
+        <div class="app-main">
+            {% include 'components/sidebarGB.html' %}
+            
+            <div class="app-main__outer">
+                <div class="app-main__inner">
+                    <!-- Page Header -->
+                    <div class="app-page-title">
+                        <div class="page-title-wrapper">
+                            <div class="page-title-heading">
+                                <div class="page-title-icon">
+                                    <i class="pe-7s-server text-primary"></i>
+                                </div>
+                                <div>
+                                    {% block page_title %}Sistema de Automatización Excel-SQL{% endblock %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Main Content -->
+                    <div class="container-fluid">
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                                    <i class="fas fa-{% if message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'success' %}check-circle{% else %}info-circle{% endif %} me-2"></i>
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                        
+                        {% block content %}
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="main-card mb-3 card">
+                                    <div class="card-body">
+                                        <h2 class="mb-3">Bienvenido al Sistema de Automatización</h2>
+                                        <p class="text-muted">Selecciona una opción del menú para comenzar.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endblock %}
+                    </div>
+                </div>
+                
+                <!-- Footer -->
+                <div class="app-wrapper-footer">
+                    <div class="app-footer-wrapper">
+                        <div class="app-footer-left">
+                            <div class="footer-dots">
+                                <div class="dots-separator"></div>
+                                <div class="dots-separator"></div>
+                                <div class="dots-separator"></div>
+                            </div>
+                        </div>
+                        <div class="app-footer-right">
+                            <ul class="nav">
+                                <li class="nav-item">
+                                    <span class="nav-link">
+                                        Sistema de Automatización Excel-SQL &copy; {{ "now"|date:"Y" }}
+                                    </span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% include 'components/drawerGB.html' %}
+    </div>
+
+    <!-- JavaScript Libraries - Orden correcto -->
+    <script src="{% static 'automatizacion/scripts/jquery.min.js' %}"></script>
+    <script src="{% static 'automatizacion/scripts/popper.min.js' %}"></script>
+    <script src="{% static 'automatizacion/scripts/bootstrap.min.js' %}"></script>
+    <script src="{% static 'automatizacion/scripts/material-components-web.min.js' %}"></script>
+    <script src="{% static 'automatizacion/scripts/components.js' %}"></script>
+    <script src="{% static 'automatizacion/scripts/script.js' %}"></script>
+
+    <script>
+        // Función para toggle del menú
+        function toggleMenu() {
+            if ($('#aside_menu').hasClass('d-none')) {
+                // Si el menú está oculto, mostrar con animación
+                $('#aside_menu').removeClass('d-none animate-slide-out').addClass('animate-slide-in');
+            } else {
+                // Si el menú está visible, ocultar con animación
+                $('#aside_menu').removeClass('animate-slide-in').addClass('animate-slide-out');
+
+                // Después de que la animación termine, añadir d-none
+                setTimeout(function () {
+                    $('#aside_menu').addClass('d-none');
+                }, 500); // El tiempo aquí debe coincidir con la duración de la animación
+            }
+        }
+        
+        // Inicialización cuando el documento esté listo
+        $(document).ready(function() {
+            // Activar tooltips de Bootstrap
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+            // Smooth scrolling para enlaces internos
+            $('a[href^="#"]').on('click', function(event) {
+                var target = $(this.getAttribute('href'));
+                if( target.length ) {
+                    event.preventDefault();
+                    $('html, body').stop().animate({
+                        scrollTop: target.offset().top - 100
+                    }, 1000);
+                }
+            });
+            
+            // Mejorar la experiencia del sidebar
+            $('.vertical-nav-menu li a').on('mouseenter', function() {
+                $(this).addClass('shadow-sm');
+            }).on('mouseleave', function() {
+                $(this).removeClass('shadow-sm');
+            });
+            
+            // Auto-hide alerts después de 5 segundos
+            $('.alert:not(.alert-permanent)').delay(5000).fadeOut('slow');
+            
+            console.log('Template moderno cargado correctamente');
+        });
+        
+        // Función para mostrar notificaciones
+        function showNotification(message, type = 'info') {
+            const alertClass = type === 'error' ? 'danger' : type;
+            const iconClass = type === 'error' ? 'exclamation-triangle' : 
+                            type === 'success' ? 'check-circle' : 'info-circle';
+            
+            const notification = `
+                <div class="alert alert-${alertClass} alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
+                    <i class="fas fa-${iconClass} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            $('body').append(notification);
+            
+            // Auto-remove after 4 seconds
+            setTimeout(function() {
+                $('.alert').last().fadeOut('slow', function() {
+                    $(this).remove();
+                });
+            }, 4000);
+        }
+        
+    </script>
+    
+    <!-- Bloque para JavaScript adicional de las páginas -->
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

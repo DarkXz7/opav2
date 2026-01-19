@@ -1,0 +1,539 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}Columnas de {{ full_table_name }} - {{ connection.name }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'automatizacion:index' %}">Inicio</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'automatizacion:list_connections' %}">Conexiones</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'automatizacion:list_sql_databases' connection.id %}">Bases de datos</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'automatizacion:list_sql_tables' connection.id %}">Tablas en {{ connection.selected_database }}</a></li>
+                    <li class="breadcrumb-item active">Columnas de {{ table_name }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col">
+            <h1 class="h3">Columnas de {{ full_table_name }}</h1>
+            <p class="text-muted">
+                Servidor: {{ connection.server }}, 
+                Base de datos: {{ connection.selected_database }}
+            </p>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="row mb-3">
+        <div class="col">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Contenedor para mensajes dinámicos de JavaScript -->
+    <div id="dynamic-messages" class="row mb-3" style="display: none;">
+        <div class="col">
+            <div id="dynamic-alert" class="alert alert-dismissible fade show" role="alert">
+                <span id="dynamic-message-text"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h2 class="h5 mb-0 text-dark">Columnas Disponibles</h2>
+                    <div>
+                        <input type="text" id="columnSearch" class="form-control form-control-sm" placeholder="Buscar columna...">
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="columnsTable">
+                            <thead>
+                                <tr>
+                                    <th width="1%">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="selectAllColumns">
+                                        </div>
+                                    </th>
+                                    <th>Nombre Original</th>
+                                    <th>Nombre Personalizado</th>
+                                    <th>Tipo</th>
+                                    <th>Nulo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if columns %}
+                                    {% for column in columns %}
+                                    <tr>
+                                        <td>
+                                            <div class="form-check">
+                                                <input class="form-check-input column-checkbox" type="checkbox" id="column-{{ forloop.counter }}" value="{{ column.name }}" data-column-name="{{ column.name }}">
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="text-muted">{{ column.name }}</span>
+                                        </td>
+                                        <td>
+                                            <input type="text" class="form-control form-control-sm column-rename-input" 
+                                                   id="rename-{{ forloop.counter }}" 
+                                                   data-original-name="{{ column.name }}"
+                                                   value="{{ column.name }}" 
+                                                   placeholder="Nombre en destino"
+                                                   disabled>
+                                        </td>
+                                        <td>{{ column.type }}</td>
+                                        <td>{{ column.nullable|yesno:"Sí,No" }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center">No se encontraron columnas en la tabla</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Total: <strong>{{ columns|length }}</strong> columnas</span>
+                        <div>
+                            <button class="btn btn-primary" id="selectColumnsBtn">
+                                <i class="fas fa-check-square me-1"></i>Seleccionar Columnas
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-5">
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h2 class="h5 mb-0 text-dark">Vista Previa de Datos</h2>
+                </div>
+                <div class="card-body">
+                    {% if preview %}
+                        <p class="text-muted mb-2">Mostrando {{ preview.data|length }} de {{ preview.total_rows }} filas</p>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        {% for col in preview.columns %}
+                                        <th>{{ col }}</th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in preview.data %}
+                                    <tr>
+                                        {% for col in preview.columns %}
+                                        <td>{{ row|get_item:col }}</td>
+                                        {% endfor %}
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            No se pudo obtener una vista previa de los datos
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            
+            <div class="card" id="selectionCard" style="display: none;">
+                <div class="card-header bg-light">
+                    <h2 class="h5 mb-0">Configuración de Proceso</h2>
+                </div>
+                <div class="card-body">
+                    <form id="processSaveForm">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="processName" class="form-label">Nombre del proceso</label>
+                            <input type="text" class="form-control" id="processName" placeholder="Ej: Migración de usuarios" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="processDescription" class="form-label">Descripción (opcional)</label>
+                            <textarea class="form-control" id="processDescription" rows="2"></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="targetDB" class="form-label">Base de datos destino</label>
+                            <input type="text" class="form-control" id="targetDB" value="DestinoAutomatizacion" readonly>
+                            <small class="form-text text-muted">Base de datos donde se importarán los datos (fijo)</small>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-primary" id="saveProcessBtn">
+                                <i class="fas fa-save me-1"></i>Guardar Proceso
+                            </button>
+                            <button type="button" class="btn btn-success" id="runProcessBtn">
+                                <i class="fas fa-play me-1"></i>Guardar y Ejecutar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para confirmar proceso duplicado -->
+<div class="modal fade" id="duplicateProcessModal" tabindex="-1" aria-labelledby="duplicateProcessModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="duplicateProcessModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Proceso Duplicado Detectado
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Ya existe un proceso con el nombre <strong id="duplicateProcessName"></strong>.</p>
+                <p class="mb-0">¿Qué deseas hacer?</p>
+                <div class="alert alert-info mt-3 mb-0">
+                    <small>
+                        <i class="fas fa-info-circle me-1"></i>
+                        <strong>Actualizar:</strong> Reemplazará la configuración del proceso existente y sus datos en la tabla destino.<br>
+                        <strong>Crear Nuevo:</strong> Creará un proceso independiente con un nombre único.
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" id="updateExistingBtn">
+                    <i class="fas fa-sync-alt me-1"></i>Actualizar Existente
+                </button>
+                <button type="button" class="btn btn-success" id="createNewBtn">
+                    <i class="fas fa-plus me-1"></i>Crear Nuevo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// Función para mostrar mensajes elegantes - VERSION SIMPLIFICADA
+function showMessage(message, type) {
+    console.log('========== SHOWMESSAGE LLAMADA ==========');
+    console.log('Mensaje:', message);
+    console.log('Tipo:', type);
+    
+    // Versión simple y directa - crear mensaje al principio de la página
+    var alertClass = 'alert-' + type;
+    var iconClass = '';
+    
+    switch(type) {
+        case 'success':
+            iconClass = 'fas fa-check-circle';
+            break;
+        case 'danger':
+            iconClass = 'fas fa-exclamation-triangle';
+            break;
+        case 'warning':
+            iconClass = 'fas fa-exclamation-circle';
+            break;
+        default:
+            iconClass = 'fas fa-info-circle';
+    }
+    
+    // Eliminar mensajes anteriores
+    $('.temp-message-alert').remove();
+    
+    // Crear mensaje temporal al inicio de la página
+    var alertHtml = '<div class="temp-message-alert alert ' + alertClass + ' alert-dismissible fade show m-3" role="alert" style="position: relative; z-index: 1050;">' +
+                   '<i class="' + iconClass + ' me-2"></i>' + message +
+                   '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                   '</div>';
+    
+    // Insertar al principio del body
+    $('body').prepend(alertHtml);
+    
+    console.log('Mensaje creado y mostrado');
+    
+    // Auto-hide después de 4 segundos para mensajes de éxito (excepto si contiene enlaces)
+    if (type === 'success' && message.indexOf('<a ') === -1) {
+        setTimeout(function() {
+            $('.temp-message-alert').fadeOut(function() {
+                $(this).remove();
+            });
+        }, 4000);
+    }
+    
+    // Scroll hacia arriba
+    $('html, body').animate({
+        scrollTop: 0
+    }, 500);
+    
+    console.log('========== SHOWMESSAGE COMPLETADA ==========');
+}
+
+$(document).ready(function() {
+    console.log('========== DOM LISTO - INICIALIZANDO FUNCIONALIDADES ==========');
+    console.log('jQuery disponible:', typeof $ !== 'undefined');
+    console.log('Botón seleccionar columnas encontrado:', $('#selectColumnsBtn').length > 0);
+    console.log('Botón guardar proceso encontrado:', $('#saveProcessBtn').length > 0);
+    
+    // Función de prueba disponible desde la consola (opcional)
+    window.testMessage = function() {
+        showMessage('Función de prueba funcionando correctamente', 'success');
+    };
+    console.log('Función testMessage() disponible en la consola si necesitas hacer pruebas');
+    
+    // Obtener ID de proceso SOLO de la URL (NO usar localStorage aquí)
+    // El localStorage puede contener IDs de procesos anteriores y causar problemas
+    var urlParams = new URLSearchParams(window.location.search);
+    var processId = urlParams.get('process_id');
+    
+    console.log('Process ID obtenido de URL:', processId);
+    
+    // Si NO hay process_id en la URL, estamos creando un proceso NUEVO
+    // Limpiar localStorage para evitar confusiones
+    if (!processId) {
+        localStorage.removeItem('current_process_id');
+        console.log('Creando proceso nuevo - localStorage limpiado');
+    } else {
+        console.log('Editando proceso existente con ID:', processId);
+        // Si ya existe un proceso, cargar su información
+        $('#processName').val('Proceso de migración ' + processId);
+    }
+    
+    // Busqueda de columnas
+    $('#columnSearch').on('keyup', function() {
+        var value = $(this).val().toLowerCase();
+        $('#columnsTable tbody tr').filter(function() {
+            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+        });
+    });
+    
+    // Selección de todas las columnas
+    $('#selectAllColumns').change(function() {
+        var isChecked = $(this).is(':checked');
+        $('.column-checkbox').prop('checked', isChecked);
+        
+        // Habilitar/deshabilitar los inputs de renombre
+        $('.column-rename-input').prop('disabled', !isChecked);
+    });
+    
+    // Actualizar "seleccionar todo" cuando se cambian las selecciones individuales
+    // Y habilitar/deshabilitar el input de renombre correspondiente
+    $('.column-checkbox').change(function() {
+        var isChecked = $(this).is(':checked');
+        var columnName = $(this).data('column-name');
+        
+        // Habilitar/deshabilitar el input de renombre correspondiente
+        $('input.column-rename-input[data-original-name="' + columnName + '"]').prop('disabled', !isChecked);
+        
+        // Actualizar el checkbox "seleccionar todo"
+        if ($('.column-checkbox:checked').length === $('.column-checkbox').length) {
+            $('#selectAllColumns').prop('checked', true);
+        } else {
+            $('#selectAllColumns').prop('checked', false);
+        }
+    });
+    
+    // Botón para seleccionar columnas
+    $('#selectColumnsBtn').click(function() {
+        // Verificar que haya columnas seleccionadas
+        if ($('.column-checkbox:checked').length === 0) {
+            showMessage('Debe seleccionar al menos una columna', 'warning');
+            return;
+        }
+        
+        // Mostrar área de configuración de proceso
+        $('#selectionCard').show();
+        $('html, body').animate({
+            scrollTop: $('#selectionCard').offset().top
+        }, 500);
+    });
+    
+    // Guardar proceso
+    $('#saveProcessBtn').click(function() {
+        saveProcessWithDuplicateCheck();
+    });
+    
+    // Función para guardar proceso con verificación de duplicados
+    function saveProcessWithDuplicateCheck(duplicateAction) {
+        // Verificar que haya columnas seleccionadas
+        if ($('.column-checkbox:checked').length === 0) {
+            showMessage('Debe seleccionar al menos una columna', 'warning');
+            return;
+        }
+        
+        var selectedColumns = [];
+        var columnMappings = {};
+        
+        $('.column-checkbox:checked').each(function() {
+            var originalName = $(this).val();
+            var customName = $('input.column-rename-input[data-original-name="' + originalName + '"]').val().trim();
+            
+            selectedColumns.push(originalName);
+            
+            // Solo agregar al mapeo si el nombre personalizado es diferente al original
+            if (customName && customName !== originalName) {
+                if (!columnMappings['{{ full_table_name }}']) {
+                    columnMappings['{{ full_table_name }}'] = {};
+                }
+                columnMappings['{{ full_table_name }}'][originalName] = customName;
+            }
+        });
+        
+        var processName = $('#processName').val();
+        if (!processName) {
+            showMessage('Debe proporcionar un nombre para el proceso', 'warning');
+            return;
+        }
+        
+        var processData = {
+            name: processName,
+            description: $('#processDescription').val(),
+            source_id: {{ source.id }},
+            selected_database: '{{ connection.selected_database }}',
+            selected_tables: ['{{ full_table_name }}'],
+            selected_columns: {
+                '{{ full_table_name }}': selectedColumns
+            },
+            column_mappings: Object.keys(columnMappings).length > 0 ? columnMappings : null,
+            target_db: $('#targetDB').val()
+        };
+        
+        // IMPORTANTE: Solo agregar process_id si realmente existe
+        // Si enviamos null o undefined, el backend no detectará duplicados correctamente
+        if (processId) {
+            processData.process_id = processId;
+        }
+        
+        // Agregar acción de duplicado si se especificó
+        if (duplicateAction) {
+            processData.duplicate_action = duplicateAction;
+        }
+        
+        console.log('Enviando datos al servidor:', processData);
+        
+        // Deshabilitar el botón mientras se procesa
+        $('#saveProcessBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Guardando...');
+        
+        // Enviar datos al servidor
+        $.ajax({
+            url: '{% url "automatizacion:save_process" %}',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(processData),
+            headers: {
+                'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val() || '{{ csrf_token }}'
+            },
+            success: function(response) {
+                console.log('Response del servidor:', response);
+                
+                // Verificar si se detectó un duplicado
+                if (response.duplicate_detected) {
+                    console.log('Duplicado detectado! Mostrando modal...');
+                    
+                    // Restaurar el botón
+                    $('#saveProcessBtn').prop('disabled', false).html('<i class="fas fa-save me-1"></i>Guardar Proceso');
+                    
+                    // Mostrar modal de confirmación
+                    showDuplicateModal(response.existing_process_name, response.existing_process_id);
+                    return;
+                }
+                
+                showMessage('✅ Proceso guardado correctamente! Redirigiendo en 2 segundos...', 'success');
+                
+                processId = response.process_id;
+                localStorage.setItem('current_process_id', processId);
+                
+                // Restaurar el botón
+                $('#saveProcessBtn').prop('disabled', false).html('<i class="fas fa-save me-1"></i>Guardar Proceso');
+                
+                // Redirigir a la página del proceso después de un breve delay
+                setTimeout(function() {
+                    var processUrl = '{% url "automatizacion:view_process" 0 %}'.replace('0', processId);
+                    window.location.href = processUrl;
+                }, 2000);
+            },
+            error: function(xhr, status, error) {
+                let errorMessage = 'Error al guardar el proceso';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMessage = xhr.responseJSON.error;
+                } else if (xhr.responseText) {
+                    try {
+                        let errorData = JSON.parse(xhr.responseText);
+                        errorMessage = errorData.error || errorMessage;
+                    } catch (e) {
+                        errorMessage = `Error del servidor (${xhr.status}): ${xhr.statusText}`;
+                    }
+                } else {
+                    errorMessage = `Error de conexión: ${error}`;
+                }
+                
+                showMessage(errorMessage, 'danger');
+                
+                // Restaurar el botón
+                $('#saveProcessBtn').prop('disabled', false).html('<i class="fas fa-save me-1"></i>Guardar Proceso');
+            }
+        });
+    }
+    
+    // Función para mostrar modal de duplicados
+    function showDuplicateModal(existingProcessName, existingProcessId) {
+        // Actualizar el contenido del modal con el nombre del proceso existente
+        $('#duplicateProcessName').text(existingProcessName || $('#processName').val());
+        
+        // Mostrar el modal
+        $('#duplicateProcessModal').modal('show');
+    }
+    
+    // Manejador para actualizar proceso existente
+    $('#updateExistingBtn').click(function() {
+        $('#duplicateProcessModal').modal('hide');
+        saveProcessWithDuplicateCheck('update_existing');
+    });
+    
+    // Manejador para crear nuevo proceso
+    $('#createNewBtn').click(function() {
+        $('#duplicateProcessModal').modal('hide');
+        saveProcessWithDuplicateCheck('create_new');
+    });
+    
+    // Ejecutar proceso
+    $('#runProcessBtn').click(function() {
+        if (!processId) {
+            // Primero guardar el proceso
+            $('#saveProcessBtn').click();
+            setTimeout(function() {
+                if (processId) {
+                    window.location.href = '{% url "automatizacion:index" %}' + 'process/' + processId + '/run/';
+                }
+            }, 1000);
+        } else {
+            window.location.href = '{% url "automatizacion:index" %}' + 'process/' + processId + '/run/';
+        }
+    });
+
+});
+</script>
+{% endblock %}
+{% endblock %}

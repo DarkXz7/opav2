@@ -1,0 +1,2557 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+{% load static %}
+
+{% block title %}Configuración de Hojas Excel - Sistema de Migración de Datos{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'automatizacion/styles/excel_multi_sheet_selector.css' %}">
+
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'automatizacion:index' %}">Inicio</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'automatizacion:new_process' %}">Nuevo Proceso</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'automatizacion:upload_excel' %}">Cargar Archivo</a></li>
+                    <li class="breadcrumb-item active">Configurar Hojas</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2>
+                <i class="fas fa-table"></i>Configuración de Hojas Excel
+            </h2>
+            <p class="text-muted mb-0">Selecciona las hojas que deseas procesar y configura las columnas específicas de cada una.</p>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <!-- Steps Progress Bar -->
+                <div class="steps">
+                    <!-- STEP 1: CARGAR ARCHIVO -->
+                    <div class="step complete">
+                        <div class="step-icon">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="step-label">Cargar Archivo</div>
+                    </div>
+                    
+                    <!-- STEP 2: CONFIGURAR HOJAS -->
+                    <div class="step active">
+                        <div class="step-icon">2</div>
+                        <div class="step-label">Configurar Hojas</div>
+                    </div>
+                    
+                    <!-- STEP 3: GUARDAR PROCESO -->
+                    <div class="step">
+                        <div class="step-icon">3</div>
+                        <div class="step-label">Guardar Proceso</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <div class="alert alert-info mb-4">
+                    <strong>Archivo:</strong> {{ source.name }} 
+                    <span class="badge bg-secondary ms-2">{{ sheets|length }} hoja{{ sheets|length|pluralize }}</span>
+                </div>
+
+                <!-- Pestañas de hojas -->
+                <div class="sheet-tabs" id="sheetTabs">
+                    {% for sheet in sheets %}
+                    <div class="sheet-tab{% if forloop.first %} active{% endif %}" data-sheet="{{ sheet }}" onclick="switchSheet('{{ sheet }}')">
+                        {{ sheet }}
+                        <span class="sheet-tab-badge" id="badge-{{ sheet|slugify }}" style="display: none;">0</span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- 🆕 Sección de renombrado de HOJA ACTIVA (solo la seleccionada) -->
+                <div class="card mt-3" id="active-sheet-rename-section">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="fas fa-edit me-2"></i>
+                            Renombrar Hoja Activa: <strong id="active-sheet-name-display" class="ms-2"></strong>
+                        </h6>
+                        
+                        <div class="input-group mb-2">
+                            <span class="input-group-text">
+                                <i class="fas fa-table me-1"></i> Nombre de tabla:
+                            </span>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="active-sheet-rename-input"
+                                   placeholder="ej: ventas_2024"
+                                   data-original-name=""
+                                   autocomplete="off"
+                                   oninput="validateActiveSheetRename()">
+                            <button class="btn btn-primary" 
+                                    type="button" 
+                                    id="validate-rename-btn"
+                                    onclick="validateActiveSheetRename()">
+                                <i class="fas fa-check me-1"></i>Validar
+                            </button>
+                        </div>
+                        
+                        <!-- Feedback de validación -->
+                        <div class="invalid-feedback d-none alert alert-danger py-2 px-3 mb-0" id="rename-error"></div>
+                        <div class="valid-feedback d-none alert alert-success py-2 px-3 mb-0" id="rename-success">
+                            <i class="fas fa-check-circle me-1"></i><span id="rename-success-text"></span>
+                        </div>
+                        
+                        <small class="text-muted d-block mt-2">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Se normalizará automáticamente: minúsculas, sin espacios ni caracteres especiales
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Contenido de cada hoja -->
+                {% for sheet in sheets %}
+                <div class="sheet-content{% if forloop.first %} active{% endif %}" id="sheet-{{ sheet|slugify }}" data-sheet="{{ sheet }}">
+                    
+                    <!-- Estadísticas de la hoja -->
+                    <div class="sheet-statistics">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <strong>Filas:</strong> {{ sheets_data|get_item:sheet|get_item:'total_rows' }}
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Columnas:</strong> {{ sheets_data|get_item:sheet|get_item:'column_count' }}
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <div class="d-flex gap-2 justify-content-end">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" 
+                                            onclick="selectAllColumns('{{ sheet }}')">
+                                        <i class="fas fa-check-square me-1"></i>Seleccionar todo
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                            onclick="clearAllColumns('{{ sheet }}')">
+                                        <i class="fas fa-times-circle me-1"></i>Limpiar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- Selector de columnas -->
+                        <div class="col-md-6">
+                            <h5>Columnas disponibles</h5>
+                            <div class="column-selector">
+                                {% for column in sheets_data|get_item:sheet|get_item:'columns' %}
+                                <div class="form-check mb-2">
+                                    <div class="row g-2 align-items-center">
+                                        <div class="col-auto">
+                                            <input class="form-check-input column-selector" 
+                                                   type="checkbox" 
+                                                   id="col-{{ sheet|slugify }}-{{ forloop.counter }}" 
+                                                   data-sheet="{{ sheet }}" 
+                                                   data-column="{{ column.name }}"
+                                                   onchange="updateColumnSelection('{{ sheet }}')">
+                                        </div>
+                                        <div class="col-3">
+                                            <label class="form-check-label" for="col-{{ sheet|slugify }}-{{ forloop.counter }}">
+                                                <code>{{ column.name }}</code>
+                                            </label>
+                                        </div>
+                                        <div class="col-2">
+                                            <select class="form-select form-select-sm column-type-selector" 
+                                                    id="type-{{ sheet|slugify }}-{{ forloop.counter }}"
+                                                    data-sheet="{{ sheet }}"
+                                                    data-column="{{ column.name }}"
+                                                    onchange="onSqlTypeChange('{{ sheet }}', '{{ column.name }}', '{{ forloop.counter }}', '{{ sheet|slugify }}')"
+                                                    disabled
+                                                    data-bs-toggle="tooltip" 
+                                                    data-bs-placement="top"
+                                                    data-bs-title="Tipo de dato SQL. Puedes cambiarlo si la detección automática no es correcta.">
+                                                <optgroup label="Numéricos">
+                                                    <option value="INT" {% if 'INT' in column.sql_type and 'BIGINT' not in column.sql_type %}selected{% endif %}>INT</option>
+                                                    <option value="BIGINT" {% if 'BIGINT' in column.sql_type %}selected{% endif %}>BIGINT</option>
+                                                    <option value="SMALLINT" {% if 'SMALLINT' in column.sql_type %}selected{% endif %}>SMALLINT</option>
+                                                    <option value="TINYINT" {% if 'TINYINT' in column.sql_type %}selected{% endif %}>TINYINT</option>
+                                                    <option value="FLOAT" {% if 'FLOAT' in column.sql_type %}selected{% endif %}>FLOAT</option>
+                                                    <option value="REAL" {% if 'REAL' in column.sql_type %}selected{% endif %}>REAL</option>
+                                                    <option value="DECIMAL(10,2)" {% if 'DECIMAL' in column.sql_type %}selected{% endif %}>DECIMAL(10,2)</option>
+                                                    <option value="MONEY" {% if 'MONEY' in column.sql_type %}selected{% endif %}>MONEY</option>
+                                                </optgroup>
+                                                <optgroup label="Fecha/Hora">
+                                                    <option value="DATE" {% if column.sql_type == 'DATE' %}selected{% endif %}>DATE</option>
+                                                    <option value="DATETIME" {% if 'DATETIME' in column.sql_type and 'DATETIME2' not in column.sql_type %}selected{% endif %}>DATETIME</option>
+                                                    <option value="DATETIME2" {% if 'DATETIME2' in column.sql_type %}selected{% endif %}>DATETIME2</option>
+                                                    <option value="SMALLDATETIME" {% if 'SMALLDATETIME' in column.sql_type %}selected{% endif %}>SMALLDATETIME</option>
+                                                    <option value="TIME" {% if column.sql_type == 'TIME' %}selected{% endif %}>TIME</option>
+                                                </optgroup>
+                                                <optgroup label="Texto">
+                                                    <option value="VARCHAR(50)" {% if 'VARCHAR(50)' in column.sql_type %}selected{% endif %}>VARCHAR(50)</option>
+                                                    <option value="VARCHAR(255)" {% if 'VARCHAR(255)' in column.sql_type %}selected{% endif %}>VARCHAR(255)</option>
+                                                    <option value="NVARCHAR(50)" {% if 'NVARCHAR(50)' in column.sql_type %}selected{% endif %}>NVARCHAR(50)</option>
+                                                    <option value="NVARCHAR(255)" {% if 'NVARCHAR(255)' in column.sql_type or column.sql_type == 'NVARCHAR' %}selected{% endif %}>NVARCHAR(255)</option>
+                                                    <option value="NVARCHAR(500)" {% if 'NVARCHAR(500)' in column.sql_type %}selected{% endif %}>NVARCHAR(500)</option>
+                                                    <option value="TEXT" {% if column.sql_type == 'TEXT' %}selected{% endif %}>TEXT</option>
+                                                    <option value="NTEXT" {% if column.sql_type == 'NTEXT' %}selected{% endif %}>NTEXT</option>
+                                                </optgroup>
+                                                <optgroup label="Booleano">
+                                                    <option value="BIT" {% if 'BIT' in column.sql_type %}selected{% endif %}>BIT</option>
+                                                </optgroup>
+                                            </select>
+                                        </div>
+                                        <div class="col">
+                                            <input type="text" 
+                                                   class="form-control form-control-sm column-rename-input" 
+                                                   id="rename-{{ sheet|slugify }}-{{ forloop.counter }}"
+                                                   data-sheet="{{ sheet }}"
+                                                   data-original-name="{{ column.name }}"
+                                                   value="{{ column.name }}"
+                                                   placeholder="Nombre en destino"
+                                                   disabled>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Configuración de valores NULL y por defecto -->
+                                    <div class="row align-items-center mt-2 ms-4" id="config-{{ sheet|slugify }}-{{ forloop.counter }}" style="display: none;">
+                                        <div class="col-md-3">
+                                            <div class="form-check d-flex align-items-center gap-2">
+                                                <input class="form-check-input column-nullable-checkbox m-0" 
+                                                       type="checkbox" 
+                                                       id="nullable-{{ sheet|slugify }}-{{ forloop.counter }}"
+                                                       data-sheet="{{ sheet }}"
+                                                       data-column="{{ column.name }}"
+                                                       onchange="toggleDefaultValueInput('{{ sheet }}', '{{ column.name }}', '{{ forloop.counter }}', '{{ sheet|slugify }}')"
+                                                       data-bs-toggle="tooltip" 
+                                                       data-bs-placement="top"
+                                                       data-bs-title="Si activas esta opción, el campo aceptará valores vacíos (NULL) cuando la celda del Excel esté vacía. Si lo desactivas, deberás configurar un valor por defecto.">
+                                                <label class="form-check-label m-0" for="nullable-{{ sheet|slugify }}-{{ forloop.counter }}">
+                                                    <small class="d-flex align-items-center gap-1">Permitir NULL 
+                                                        <i class="fas fa-question-circle text-muted" 
+                                                           data-bs-toggle="tooltip" 
+                                                           data-bs-placement="right"
+                                                           data-bs-title="NULL = valor vacío. Si permites NULL, las celdas vacías del Excel se insertarán como NULL en la base de datos."></i>
+                                                    </small>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-9">
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text">Valor por defecto</span>
+                                                <input type="text" 
+                                                       class="form-control column-default-input" 
+                                                       id="default-{{ sheet|slugify }}-{{ forloop.counter }}"
+                                                       data-sheet="{{ sheet }}"
+                                                       data-column="{{ column.name }}"
+                                                       data-sql-type="{{ column.sql_type }}"
+                                                       placeholder="{% if 'DATE' in column.sql_type or 'TIME' in column.sql_type %}Ej: GETDATE(){% elif 'INT' in column.sql_type or 'FLOAT' in column.sql_type or 'DECIMAL' in column.sql_type or 'NUMERIC' in column.sql_type or 'MONEY' in column.sql_type %}Ej: 0{% elif 'BIT' in column.sql_type %}Ej: 0 o 1{% else %}Ej: 'Texto' o '' (espacio){% endif %}"
+                                                       value="{% if 'DATE' in column.sql_type or 'TIME' in column.sql_type %}GETDATE(){% elif 'INT' in column.sql_type or 'BIGINT' in column.sql_type or 'SMALLINT' in column.sql_type or 'TINYINT' in column.sql_type %}0{% elif 'FLOAT' in column.sql_type or 'DECIMAL' in column.sql_type or 'NUMERIC' in column.sql_type or 'MONEY' in column.sql_type or 'REAL' in column.sql_type %}0.00{% elif 'BIT' in column.sql_type %}0{% else %}''{% endif %}"
+                                                       oninput="validateDefaultValueReal('{{ sheet|slugify }}', '{{ forloop.counter }}')"
+                                                       onblur="validateDefaultValueReal('{{ sheet|slugify }}', '{{ forloop.counter }}')">
+                                                <button class="btn btn-outline-secondary" 
+                                                        type="button" 
+                                                        id="suggest-{{ sheet|slugify }}-{{ forloop.counter }}"
+                                                        onclick="suggestDefaultValue('{{ sheet|slugify }}', '{{ forloop.counter }}', '{{ column.sql_type }}')"
+                                                        data-bs-toggle="tooltip" 
+                                                        data-bs-placement="top"
+                                                        data-bs-title="Sugiere un valor por defecto apropiado según el tipo de dato de esta columna ({{ column.sql_type }})">
+                                                    💡
+                                                </button>
+                                            </div>
+                                            <small class="text-muted">Si el Excel está vacío, usar este valor</small>
+                                            <div class="invalid-feedback d-none"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Vista previa -->
+                        <div class="col-md-6">
+                            <h5>Vista previa de datos</h5>
+                            <div class="preview-table">
+                                {% with preview=sheets_data|get_item:sheet|get_item:'preview' %}
+                                {% if preview.sample_data %}
+                                <table class="table table-sm table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            {% for column in preview.columns %}
+                                            <th class="preview-column" data-sheet="{{ sheet }}" data-column="{{ column }}">
+                                                {{ column }}
+                                            </th>
+                                            {% endfor %}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for row in preview.sample_data|slice:":5" %}
+                                        <tr>
+                                            {% for value in row %}
+                                            <td class="preview-cell" data-sheet="{{ sheet }}" data-column="{{ preview.columns|get_item:forloop.counter0 }}">
+                                                {% if value %}
+                                                    {{ value|truncatechars:20 }}
+                                                {% else %}
+                                                    <span class="text-muted">—</span>
+                                                {% endif %}
+                                            </td>
+                                            {% endfor %}
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                                {% else %}
+                                <div class="alert alert-warning">
+                                    No se pudo obtener vista previa de esta hoja.
+                                </div>
+                                {% endif %}
+                                {% endwith %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Resumen de columnas seleccionadas -->
+                    <div class="selected-columns-summary" id="summary-{{ sheet|slugify }}" style="display: none;">
+                        <h6><i class="fas fa-check-circle text-success me-2"></i>Columnas seleccionadas para {{ sheet }}</h6>
+                        <div id="selected-tags-{{ sheet|slugify }}">
+                            <!-- Se llenarán dinámicamente -->
+                        </div>
+                        <small class="text-muted">
+                            Tabla resultante: <code id="table-name-{{ sheet|slugify }}">{{ process_name|default:"NombreProceso" }}_{{ sheet }}</code>
+                        </small>
+                    </div>
+
+                </div>
+                {% endfor %}
+
+                <!-- Resumen general -->
+                <div class="alert alert-success mt-4" id="globalSummary" style="display: none;">
+                    <h5><i class="fas fa-clipboard-check me-2"></i>Resumen de configuración</h5>
+                    <div id="globalSummaryContent">
+                        <!-- Se llenará dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- Botones de acción -->
+                <div class="action-buttons">
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'automatizacion:upload_excel' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Atrás
+                        </a>
+                        
+                        <div>
+                            <button type="button" class="btn btn-success me-2" id="saveProcessBtn" disabled>
+                                <i class="fas fa-save me-2"></i>Guardar Proceso
+                            </button>
+                            <button type="button" class="btn btn-primary" id="saveAndRunBtn" disabled>
+                                <i class="fas fa-play me-2"></i>Guardar y Ejecutar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para guardar proceso -->
+<div class="modal fade" id="saveProcessModal" tabindex="-1" aria-labelledby="saveProcessModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="saveProcessModalLabel">Guardar Proceso de Excel</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="processForm">
+                    <div class="mb-3">
+                        <label for="processName" class="form-label">Nombre del proceso</label>
+                        <input type="text" class="form-control" id="processName" required>
+                        <div class="form-text">Este nombre se usará para crear las tablas en la base de datos</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="processDescription" class="form-label">Descripción (opcional)</label>
+                        <textarea class="form-control" id="processDescription" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="targetDB" class="form-label">Base de datos destino</label>
+                        <input type="text" class="form-control" id="targetDB" value="DestinoAutomatizacion" readonly>
+                        <small class="form-text text-muted">Base de datos donde se importarán los datos (fijo)</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6>Vista previa de tablas</h6>
+                        <div id="tablePreview" class="border rounded p-2 bg-light">
+                            <!-- Se llenará dinámicamente -->
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="confirmSaveBtn">
+                    <i class="fas fa-save me-2"></i>Guardar Proceso
+                </button>
+                <button type="button" class="btn btn-primary" id="confirmSaveAndRunBtn">
+                    <i class="fas fa-play me-2"></i>Guardar y Ejecutar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para confirmar proceso duplicado -->
+<div class="modal fade" id="duplicateProcessModal" tabindex="-1" aria-labelledby="duplicateProcessModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="duplicateProcessModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Proceso Duplicado Detectado
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Ya existe un proceso con el nombre <strong id="duplicateProcessName"></strong>.</p>
+                <p class="mb-0">¿Qué deseas hacer?</p>
+                <div class="alert alert-info mt-3 mb-0">
+                    <small>
+                        <i class="fas fa-info-circle me-1"></i>
+                        <strong>Actualizar:</strong> Reemplazará la configuración del proceso existente y sus datos en la tabla destino.<br>
+                        <strong>Crear Nuevo:</strong> Creará un proceso independiente con un nombre único.
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" id="updateExistingBtnExcel">
+                    <i class="fas fa-sync-alt me-1"></i>Actualizar Existente
+                </button>
+                <button type="button" class="btn btn-success" id="createNewBtnExcel">
+                    <i class="fas fa-plus me-1"></i>Crear Nuevo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Variables globales para JavaScript -->
+<input type="hidden" id="sourceId" value="{{ source.id }}">
+<input type="hidden" id="sheetsData" value="{{ sheets_data|safe }}">
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- 🆕 Sistema de validación e inferencia -->
+<script src="{% static 'automatizacion/js/validation_and_inference.js' %}"></script>
+
+<!-- Input oculto para el source ID (usado por validation_and_inference.js) -->
+<input type="hidden" id="source-id" value="{{ source.id }}">
+
+<script>
+// Variables globales
+let selectedSheets = new Set();
+let selectedColumns = {};
+let currentSheet = '{{ sheets.0 }}'; // Primera hoja por defecto
+let sheetRenames = {};  // Mapeo de nombres originales → nombres personalizados
+let sheetNameValidation = {};  // Estado de validación de cada hoja
+
+// =====================================================
+// FUNCIONES DE VALIDACIÓN Y NORMALIZACIÓN DE NOMBRES
+// =====================================================
+
+/**
+ * Normaliza un nombre de hoja para que sea SQL-safe
+ * - Convierte a minúsculas
+ * - Reemplaza espacios por guiones bajos
+ * - Elimina caracteres especiales y acentos
+ * - Elimina guiones bajos múltiples
+ */
+function normalizeSheetName(name) {
+    if (!name) return '';
+    
+    // Convertir a minúsculas
+    let normalized = name.toLowerCase();
+    
+    // Reemplazar espacios por guiones bajos
+    normalized = normalized.replace(/\s+/g, '_');
+    
+    // Eliminar acentos y caracteres especiales
+    normalized = normalized
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Eliminar diacríticos
+        .replace(/[^a-z0-9_]/g, '_');     // Solo permitir letras, números y guiones bajos
+    
+    // Eliminar guiones bajos múltiples
+    normalized = normalized.replace(/_+/g, '_');
+    
+    // Eliminar guiones bajos al inicio y final
+    normalized = normalized.replace(/^_+|_+$/g, '');
+    
+    // Si queda vacío, usar 'hoja'
+    if (!normalized) {
+        normalized = 'hoja';
+    }
+    
+    return normalized;
+}
+
+/**
+ * Valida el nombre de una hoja en tiempo real
+ * Muestra feedback visual y actualiza el estado de validación
+ */
+function validateSheetName(input) {
+    const originalName = input.dataset.originalName;
+    const customName = input.value.trim();
+    const normalized = normalizeSheetName(customName);
+    
+    const iconElement = document.getElementById(`icon-${originalName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`);
+    const feedbackElement = document.getElementById(`feedback-${originalName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`);
+    
+    // Limpiar clases previas
+    input.classList.remove('valid', 'warning', 'invalid');
+    iconElement.className = 'sheet-rename-icon';
+    feedbackElement.className = 'sheet-rename-feedback';
+    feedbackElement.style.display = 'none';
+    
+    // Validación 1: Nombre vacío
+    if (!customName) {
+        input.classList.add('warning');
+        iconElement.classList.add('warning');
+        iconElement.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+        feedbackElement.classList.add('warning', 'show');
+        feedbackElement.textContent = '⚠️ Se usará el nombre original si no personalizas';
+        sheetNameValidation[originalName] = { valid: true, normalized: originalName.toLowerCase() };
+        sheetRenames[originalName] = originalName.toLowerCase();
+        updateSaveButtonState();
+        return;
+    }
+    
+    // Validación 2: Necesita normalización
+    let needsNormalization = customName !== normalized;
+    
+    // Validación 3: Nombres duplicados
+    const allNormalizedNames = Object.values(sheetRenames);
+    const isDuplicate = allNormalizedNames.filter(n => n === normalized).length > 1 ||
+                        (allNormalizedNames.includes(normalized) && sheetRenames[originalName] !== normalized);
+    
+    if (isDuplicate) {
+        input.classList.add('invalid');
+        iconElement.classList.add('invalid');
+        iconElement.innerHTML = '<i class="fas fa-times-circle"></i>';
+        feedbackElement.classList.add('invalid', 'show');
+        feedbackElement.textContent = `❌ Nombre duplicado: "${normalized}" ya existe`;
+        sheetNameValidation[originalName] = { valid: false, normalized: normalized };
+        sheetRenames[originalName] = normalized;
+        updateSaveButtonState();
+        return;
+    }
+    
+    // Validación 4: Válido con advertencia de normalización
+    if (needsNormalization) {
+        input.classList.add('warning');
+        iconElement.classList.add('warning');
+        iconElement.innerHTML = '<i class="fas fa-check-circle"></i>';
+        feedbackElement.classList.add('warning', 'show');
+        feedbackElement.innerHTML = `⚠️ Se normalizará a: <strong>${normalized}</strong>`;
+        sheetNameValidation[originalName] = { valid: true, normalized: normalized };
+        sheetRenames[originalName] = normalized;
+        updateSaveButtonState();
+        return;
+    }
+    
+    // Validación 5: Válido sin cambios
+    input.classList.add('valid');
+    iconElement.classList.add('valid');
+    iconElement.innerHTML = '<i class="fas fa-check-circle"></i>';
+    feedbackElement.classList.add('valid', 'show');
+    feedbackElement.textContent = `✅ Nombre válido: "${normalized}"`;
+    sheetNameValidation[originalName] = { valid: true, normalized: normalized };
+    sheetRenames[originalName] = normalized;
+    updateSaveButtonState();
+}
+
+/**
+ * Actualiza el estado del botón de guardar basado en las validaciones
+ */
+function updateSaveButtonState() {
+    const saveBtn = document.getElementById('saveProcessBtn');
+    const saveAndRunBtn = document.getElementById('saveAndRunBtn');
+    
+    // Verificar si hay nombres inválidos
+    const hasInvalid = Object.values(sheetNameValidation).some(v => !v.valid);
+    
+    if (hasInvalid) {
+        saveBtn.disabled = true;
+        saveAndRunBtn.disabled = true;
+        saveBtn.title = 'Corrige los nombres duplicados antes de guardar';
+        saveAndRunBtn.title = 'Corrige los nombres duplicados antes de guardar';
+    } else {
+        saveBtn.disabled = false;
+        saveAndRunBtn.disabled = false;
+        saveBtn.title = '';
+        saveAndRunBtn.title = '';
+    }
+}
+
+// =====================================================
+// FIN DE FUNCIONES DE VALIDACIÓN
+// =====================================================
+
+// =====================================================
+// FUNCIONES PARA NULLABLE Y VALORES POR DEFECTO
+// =====================================================
+
+/**
+ * Habilita/deshabilita el input de valor por defecto según el checkbox nullable
+ */
+function toggleDefaultValueInput(sheetName, columnName, counter, sheetSlug) {
+    const nullableCheckbox = document.getElementById(`nullable-${sheetSlug}-${counter}`);
+    const defaultInput = document.getElementById(`default-${sheetSlug}-${counter}`);
+    const suggestBtn = document.getElementById(`suggest-${sheetSlug}-${counter}`);
+    
+    if (!nullableCheckbox || !defaultInput) return;
+    
+    const allowsNull = nullableCheckbox.checked;
+    
+    if (allowsNull) {
+        // Si permite NULL, deshabilitar el input de valor por defecto
+        defaultInput.disabled = true;
+        defaultInput.value = 'NULL';
+        defaultInput.classList.add('text-muted');
+        if (suggestBtn) suggestBtn.disabled = true;
+    } else {
+        // Si NO permite NULL, habilitar el input y sugerir valor
+        defaultInput.disabled = false;
+        defaultInput.classList.remove('text-muted');
+        if (suggestBtn) suggestBtn.disabled = false;
+        
+        // Si está vacío, sugerir valor automáticamente
+        if (!defaultInput.value || defaultInput.value === 'NULL') {
+            const sqlType = defaultInput.dataset.sqlType;
+            defaultInput.value = getDefaultValueSuggestion(sqlType);
+        }
+    }
+}
+
+/**
+ * Sugiere un valor por defecto basado en el tipo SQL
+ */
+function getDefaultValueSuggestion(sqlType) {
+    if (!sqlType) return '';
+    
+    const type = sqlType.toUpperCase();
+    
+    // Tipos numéricos enteros
+    if (type.includes('INT') || type.includes('BIGINT') || type.includes('SMALLINT') || type.includes('TINYINT')) {
+        return '0';
+    }
+    
+    // Tipos numéricos decimales
+    if (type.includes('DECIMAL') || type.includes('NUMERIC') || type.includes('FLOAT') || type.includes('REAL') || type.includes('MONEY')) {
+        return '0.00';
+    }
+    
+    // Tipos booleanos
+    if (type.includes('BIT') || type.includes('BOOLEAN')) {
+        return '1';
+    }
+    
+    // Tipos de texto
+    if (type.includes('VARCHAR') || type.includes('CHAR') || type.includes('TEXT') || type.includes('NVARCHAR') || type.includes('NCHAR')) {
+        return "' '";  // Espacio simple entre comillas
+    }
+    
+    // Tipos de fecha/hora
+    if (type.includes('DATE') || type.includes('TIME') || type.includes('DATETIME')) {
+        return 'GETDATE()';
+    }
+    
+    return '';
+}
+
+/**
+ * Obtiene el placeholder contextual según el tipo SQL
+ */
+function getPlaceholderForType(sqlType) {
+    if (!sqlType) return 'Ej: 0';
+    
+    const type = sqlType.toUpperCase();
+    
+    // Tipos numéricos enteros
+    if (type.includes('INT') || type.includes('BIGINT') || type.includes('SMALLINT') || type.includes('TINYINT')) {
+        return 'Ej: 0';
+    }
+    
+    // Tipos numéricos decimales
+    if (type.includes('DECIMAL') || type.includes('NUMERIC') || type.includes('FLOAT') || type.includes('REAL') || type.includes('MONEY')) {
+        return 'Ej: 0.00';
+    }
+    
+    // Tipos booleanos
+    if (type.includes('BIT') || type.includes('BOOLEAN')) {
+        return 'Ej: 1 (para TRUE) o 0 (para FALSE)';
+    }
+    
+    // Tipos de texto
+    if (type.includes('VARCHAR') || type.includes('CHAR') || type.includes('TEXT') || type.includes('NVARCHAR') || type.includes('NCHAR')) {
+        return "Ej: 'Texto' o ' ' (espacio)";
+    }
+    
+    // Tipos de fecha/hora
+    if (type.includes('DATE') || type.includes('TIME') || type.includes('DATETIME')) {
+        return 'Ej: GETDATE() o fecha específica';
+    }
+    
+    return 'Ej: valor por defecto';
+}
+
+/**
+ * Aplica la sugerencia de valor por defecto al input
+ */
+function suggestDefaultValue(sheetSlug, counter, sqlType) {
+    const defaultInput = document.getElementById(`default-${sheetSlug}-${counter}`);
+    if (!defaultInput) return;
+    
+    const suggestion = getDefaultValueSuggestion(sqlType);
+    defaultInput.value = suggestion;
+    
+    // Efecto visual de confirmación
+    defaultInput.classList.add('border-success');
+    setTimeout(() => {
+        defaultInput.classList.remove('border-success');
+    }, 500);
+}
+
+// =====================================================
+// FIN DE FUNCIONES NULLABLE Y DEFAULT
+// =====================================================
+
+// =====================================================
+// FUNCIÓN PARA INICIALIZAR TOOLTIPS DE BOOTSTRAP
+// =====================================================
+
+/**
+ * Inicializa todos los tooltips de Bootstrap en la página
+ */
+function initializeTooltips() {
+    // Destruir tooltips existentes primero para evitar duplicados
+    const existingTooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    existingTooltips.forEach(el => {
+        const tooltipInstance = bootstrap.Tooltip.getInstance(el);
+        if (tooltipInstance) {
+            tooltipInstance.dispose();
+        }
+    });
+    
+    // Inicializar nuevos tooltips
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+}
+
+// =====================================================
+// INICIALIZACIÓN DE LA INTERFAZ
+// =====================================================
+
+// Inicializar la interfaz
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar tooltips de Bootstrap
+    initializeTooltips();
+    
+    // 🆕 Inicializar nombres de hojas normalizados para TODAS las hojas
+    const allSheets = [{% for sheet in sheets %}'{{ sheet }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+    allSheets.forEach(sheetName => {
+        // Inicializar con el nombre normalizado por defecto
+        const normalizedName = normalizeSheetName(sheetName);
+        sheetRenames[sheetName] = normalizedName;
+        sheetNameValidation[sheetName] = { valid: true, normalized: normalizedName };
+    });
+    
+    // Verificar si hay duplicados iniciales (ej: "Hoja 1" y "hoja 1" normalizan a lo mismo)
+    checkForInitialDuplicates();
+    
+    // 🆕 Aplicar validación en tiempo real a todos los inputs de default value
+    initializeDefaultValueValidation();
+    
+    // 🆕 Inicializar sección de renombrado de hoja activa
+    if (currentSheet) {
+        updateActiveSheetRenameSection(currentSheet);
+    }
+    
+    // Activar primera pestaña
+    if (currentSheet) {
+        switchSheet(currentSheet);
+    }
+    
+    // Configurar eventos
+    setupEventListeners();
+});
+
+/**
+ * 🆕 Verifica si hay nombres duplicados iniciales (después de normalización)
+ * Por ejemplo: "Hoja 1" y "hoja 1" ambos normalizan a "hoja_1"
+ */
+function checkForInitialDuplicates() {
+    const normalizedNames = Object.values(sheetRenames);
+    const duplicates = normalizedNames.filter((name, index) => normalizedNames.indexOf(name) !== index);
+    
+    if (duplicates.length > 0) {
+        console.warn(`⚠️ Nombres de hojas duplicados detectados: ${duplicates.join(', ')}`);
+        
+        // Marcar las hojas con nombres duplicados
+        Object.keys(sheetRenames).forEach(originalName => {
+            const normalized = sheetRenames[originalName];
+            if (duplicates.includes(normalized)) {
+                // Generar nombre único agregando sufijo
+                let counter = 2;
+                let uniqueName = `${normalized}_${counter}`;
+                while (Object.values(sheetRenames).includes(uniqueName)) {
+                    counter++;
+                    uniqueName = `${normalized}_${counter}`;
+                }
+                sheetRenames[originalName] = uniqueName;
+                sheetNameValidation[originalName] = { valid: true, normalized: uniqueName };
+                console.log(`   Renombrado automático: "${originalName}" → "${uniqueName}"`);
+            }
+        });
+    }
+}
+
+/**
+ * 🆕 Inicializa la validación en tiempo real para todos los inputs de default value
+ * Se ejecuta al cargar la página para aplicar validación según el tipo SQL seleccionado
+ */
+function initializeDefaultValueValidation() {
+    console.log('🔧 Inicializando validación de valores por defecto...');
+    
+    // Buscar TODOS los selectores de tipo SQL en la página
+    const typeSelectors = document.querySelectorAll('select[id^="type-"]');
+    console.log(`   Encontrados ${typeSelectors.length} selectores de tipo SQL`);
+    
+    typeSelectors.forEach(typeSelector => {
+        const selectorId = typeSelector.id; // Ej: "type-ventas-1"
+        const parts = selectorId.split('-'); // ["type", "ventas", "1"]
+        
+        if (parts.length < 3) {
+            console.warn(`   ⚠️ ID inválido: ${selectorId}`);
+            return;
+        }
+        
+        // Reconstruir el counter (puede ser multi-parte como "ventas-1")
+        const counter = parts[parts.length - 1]; // Último elemento es el counter
+        const sheetSlugParts = parts.slice(1, -1); // Todo menos "type" y el counter
+        const sheetSlug = sheetSlugParts.join('-'); // Unir con guiones
+        
+        // Buscar el input de default value correspondiente
+        const defaultInput = document.getElementById(`default-${sheetSlug}-${counter}`);
+        
+        if (!defaultInput) {
+            console.warn(`   ⚠️ No se encontró input default-${sheetSlug}-${counter}`);
+            return;
+        }
+        
+        // Obtener el tipo SQL actual
+        const sqlType = typeSelector.value;
+        
+        // Aplicar validación
+        setupInputValidationForType(defaultInput, sqlType);
+        
+        console.log(`   ✅ Validación aplicada a default-${sheetSlug}-${counter} (tipo: ${sqlType})`);
+    });
+    
+    console.log('✅ Validación de valores por defecto inicializada');
+}
+
+function setupEventListeners() {
+    // Botones de guardar
+    document.getElementById('saveProcessBtn').addEventListener('click', function() {
+        if (validateSelection()) {
+            showSaveModal(false);
+        }
+    });
+    
+    document.getElementById('saveAndRunBtn').addEventListener('click', function() {
+        if (validateSelection()) {
+            showSaveModal(true);
+        }
+    });
+    
+    document.getElementById('confirmSaveBtn').addEventListener('click', function() {
+        saveProcess(false);
+    });
+    
+    document.getElementById('confirmSaveAndRunBtn').addEventListener('click', function() {
+        saveProcess(true);
+    });
+}
+
+function switchSheet(sheetName) {
+    // Desactivar todas las pestañas y contenidos
+    document.querySelectorAll('.sheet-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelectorAll('.sheet-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    // Activar pestaña y contenido actual
+    document.querySelector(`[data-sheet="${sheetName}"]`).classList.add('active');
+    document.getElementById(`sheet-${sheetName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`).classList.add('active');
+    
+    currentSheet = sheetName;
+    
+    // 🆕 Actualizar sección de renombrado de hoja activa
+    updateActiveSheetRenameSection(sheetName);
+    
+    // Actualizar estado visual de las columnas y vista previa
+    updatePreviewHighlighting(sheetName);
+}
+
+// 🆕 Función para actualizar la sección de renombrado de hoja activa
+function updateActiveSheetRenameSection(sheetName) {
+    const displayElement = document.getElementById('active-sheet-name-display');
+    const inputElement = document.getElementById('active-sheet-rename-input');
+    const errorDiv = document.getElementById('rename-error');
+    const successDiv = document.getElementById('rename-success');
+    
+    if (displayElement && inputElement) {
+        // Actualizar nombre de hoja mostrado
+        displayElement.textContent = sheetName;
+        
+        // Actualizar input con el nombre personalizado (si existe) o el nombre normalizado por defecto
+        const customName = sheetRenames[sheetName] || normalizeSheetName(sheetName);
+        inputElement.value = customName;
+        inputElement.dataset.originalName = sheetName;
+        
+        // Limpiar feedback
+        inputElement.classList.remove('is-valid', 'is-invalid');
+        if (errorDiv) errorDiv.classList.add('d-none');
+        if (successDiv) successDiv.classList.add('d-none');
+        
+        // Validar automáticamente al cambiar de hoja
+        validateActiveSheetRename();
+    }
+}
+
+// 🆕 Función para validar el renombrado de hoja activa EN TIEMPO REAL
+function validateActiveSheetRename() {
+    const inputElement = document.getElementById('active-sheet-rename-input');
+    const errorDiv = document.getElementById('rename-error');
+    const successDiv = document.getElementById('rename-success');
+    const successText = document.getElementById('rename-success-text');
+    
+    if (!inputElement) return;
+    
+    const originalName = inputElement.dataset.originalName;
+    const newName = inputElement.value.trim();
+    
+    // Normalizar el nombre ingresado
+    const normalized = normalizeSheetName(newName || originalName);
+    
+    // Limpiar estilos previos
+    inputElement.classList.remove('is-valid', 'is-invalid');
+    errorDiv.classList.add('d-none');
+    successDiv.classList.add('d-none');
+    
+    // Validación 1: Nombre vacío - usar nombre original normalizado
+    if (!newName) {
+        inputElement.classList.add('is-valid');
+        successDiv.classList.remove('d-none');
+        successText.textContent = `Se usará: "${normalized}"`;
+        sheetRenames[originalName] = normalized;
+        sheetNameValidation[originalName] = { valid: true, normalized: normalized };
+        updateSaveButtonState();
+        return;
+    }
+    
+    // Validación 2: Verificar duplicados
+    // Obtener todos los nombres normalizados de OTRAS hojas (no la actual)
+    const otherSheetNames = [];
+    Object.keys(sheetRenames).forEach(key => {
+        if (key !== originalName) {
+            otherSheetNames.push(sheetRenames[key]);
+        }
+    });
+    
+    const isDuplicate = otherSheetNames.includes(normalized);
+    
+    if (isDuplicate) {
+        inputElement.classList.add('is-invalid');
+        errorDiv.classList.remove('d-none');
+        errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle me-1"></i>El nombre "<strong>${normalized}</strong>" ya está en uso por otra hoja. Por favor, elige un nombre diferente.`;
+        sheetNameValidation[originalName] = { valid: false, normalized: normalized };
+        updateSaveButtonState();
+        return;
+    }
+    
+    // Validación 3: Mostrar el nombre normalizado si es diferente al input
+    const needsNormalization = newName !== normalized;
+    
+    inputElement.classList.add('is-valid');
+    successDiv.classList.remove('d-none');
+    
+    if (needsNormalization) {
+        successText.innerHTML = `Nombre válido. Se guardará como: <strong>${normalized}</strong>`;
+    } else {
+        successText.innerHTML = `<i class="fas fa-check me-1"></i>Nombre válido: <strong>${normalized}</strong>`;
+    }
+    
+    // Guardar el nombre normalizado
+    sheetRenames[originalName] = normalized;
+    sheetNameValidation[originalName] = { valid: true, normalized: normalized };
+    updateSaveButtonState();
+}
+
+function selectAllColumns(sheetName) {
+    console.log(`🔍 DEBUG selectAllColumns("${sheetName}")`);
+    
+    // 🔧 FIX: Filtrar SOLO los checkboxes de columnas, no los de nullable ni default
+    const checkboxesBefore = document.querySelectorAll(`input.column-selector[data-sheet="${sheetName}"][data-column]`);
+    console.log(`   Checkboxes encontrados ANTES: ${checkboxesBefore.length}`);
+    
+    // Verificar duplicados por columna
+    const columnCounts = {};
+    checkboxesBefore.forEach(cb => {
+        const col = cb.dataset.column;
+        columnCounts[col] = (columnCounts[col] || 0) + 1;
+    });
+    
+    const duplicatedColumns = Object.entries(columnCounts).filter(([col, count]) => count > 1);
+    if (duplicatedColumns.length > 0) {
+        console.error(`❌ DUPLICADOS DETECTADOS en selectAllColumns:`);
+        duplicatedColumns.forEach(([col, count]) => {
+            console.error(`   - "${col}": aparece ${count} veces`);
+        });
+    } else {
+        console.log(`   ✅ No hay duplicados detectados`);
+    }
+    
+    // 🔧 FIX: Usar selector específico para checkboxes de columnas
+    const checkboxes = document.querySelectorAll(`input.column-selector[data-sheet="${sheetName}"][data-column]`);
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = true;
+    });
+    
+    console.log(`   Checkboxes marcados: ${checkboxes.length}`);
+    updateColumnSelection(sheetName);
+}
+
+function clearAllColumns(sheetName) {
+    // 🔧 FIX: Filtrar SOLO los checkboxes de columnas
+    const checkboxes = document.querySelectorAll(`input.column-selector[data-sheet="${sheetName}"][data-column]`);
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    updateColumnSelection(sheetName);
+}
+
+/**
+ * Manejador del cambio de tipo SQL en el selector
+ * Actualiza el placeholder del input de default value y las sugerencias
+ */
+function onSqlTypeChange(sheetName, columnName, counter, sheetSlug) {
+    const typeSelector = document.getElementById(`type-${sheetSlug}-${counter}`);
+    const defaultInput = document.getElementById(`default-${sheetSlug}-${counter}`);
+    const suggestBtn = document.getElementById(`suggest-${sheetSlug}-${counter}`);
+    
+    if (!typeSelector || !defaultInput) {
+        console.error(`❌ No se encontraron elementos para tipo SQL`);
+        return;
+    }
+    
+    const selectedType = typeSelector.value;
+    console.log(`🔄 Tipo SQL cambiado para "${columnName}": ${selectedType}`);
+    
+    // Actualizar el data attribute del input (para mantener compatibilidad)
+    defaultInput.dataset.sqlType = selectedType;
+    
+    // Actualizar placeholder dinámicamente
+    const newPlaceholder = getPlaceholderForType(selectedType);
+    defaultInput.placeholder = newPlaceholder;
+    
+    // 🆕 CONFIGURAR VALIDACIÓN EN TIEMPO REAL según tipo
+    setupInputValidationForType(defaultInput, selectedType);
+    
+    // Si hay un valor default anterior que no coincide con el nuevo tipo, limpiarlo
+    const currentValue = defaultInput.value.trim();
+    if (currentValue && !isValidDefaultForType(currentValue, selectedType)) {
+        if (confirm(`El valor por defecto "${currentValue}" no parece válido para el tipo ${selectedType}. ¿Deseas limpiarlo?`)) {
+            defaultInput.value = '';
+        }
+    }
+    
+    console.log(`   ✅ Placeholder actualizado: "${newPlaceholder}"`);
+}
+
+/**
+ * 🆕 Configura validación en tiempo real para el input según el tipo SQL
+ * Previene que el usuario escriba caracteres inválidos
+ */
+function setupInputValidationForType(inputElement, sqlType) {
+    const upperType = sqlType.toUpperCase();
+    
+    // Remover event listeners anteriores (si existen)
+    const oldListener = inputElement._validationListener;
+    if (oldListener) {
+        inputElement.removeEventListener('keypress', oldListener);
+        inputElement.removeEventListener('paste', oldListener);
+    }
+    
+    // Función de validación según tipo
+    let validationFn = null;
+    
+    // 🔢 TIPOS NUMÉRICOS ENTEROS (INT, BIGINT, SMALLINT, TINYINT)
+    if (upperType.includes('INT') && !upperType.includes('POINT')) {
+        validationFn = (e) => {
+            const char = e.key || String.fromCharCode(e.which);
+            const currentValue = e.target.value;
+            
+            // Permitir teclas especiales (backspace, delete, arrows, tab)
+            if (e.keyCode === 8 || e.keyCode === 46 || e.keyCode === 37 || 
+                e.keyCode === 39 || e.keyCode === 9) {
+                return true;
+            }
+            
+            // Permitir signo negativo solo al inicio
+            if (char === '-' && currentValue.length === 0) {
+                return true;
+            }
+            
+            // Solo permitir dígitos
+            if (!/^\d$/.test(char)) {
+                e.preventDefault();
+                showTemporaryTooltip(e.target, `❌ Tipo ${sqlType}: Solo se permiten números enteros (sin letras)`);
+                return false;
+            }
+            
+            return true;
+        };
+        
+        inputElement.setAttribute('inputmode', 'numeric');
+        inputElement.setAttribute('pattern', '-?[0-9]*');
+    }
+    
+    // 🔢 TIPOS DECIMALES (FLOAT, DECIMAL, NUMERIC, MONEY, REAL)
+    else if (upperType.includes('FLOAT') || upperType.includes('DECIMAL') || 
+             upperType.includes('NUMERIC') || upperType.includes('MONEY') || 
+             upperType.includes('REAL')) {
+        validationFn = (e) => {
+            const char = e.key || String.fromCharCode(e.which);
+            const currentValue = e.target.value;
+            
+            // Permitir teclas especiales
+            if (e.keyCode === 8 || e.keyCode === 46 || e.keyCode === 37 || 
+                e.keyCode === 39 || e.keyCode === 9) {
+                return true;
+            }
+            
+            // Permitir signo negativo solo al inicio
+            if (char === '-' && currentValue.length === 0) {
+                return true;
+            }
+            
+            // Permitir punto decimal (solo uno)
+            if ((char === '.' || char === ',') && !currentValue.includes('.') && !currentValue.includes(',')) {
+                return true;
+            }
+            
+            // Solo permitir dígitos
+            if (!/^\d$/.test(char)) {
+                e.preventDefault();
+                showTemporaryTooltip(e.target, `❌ Tipo ${sqlType}: Solo números decimales (sin letras). Ej: 12.50`);
+                return false;
+            }
+            
+            return true;
+        };
+        
+        inputElement.setAttribute('inputmode', 'decimal');
+        inputElement.setAttribute('pattern', '-?[0-9]*[.,]?[0-9]*');
+    }
+    
+    // 📅 TIPOS DE FECHA (DATE, DATETIME, DATETIME2, TIME)
+    else if (upperType.includes('DATE') || upperType.includes('TIME')) {
+        validationFn = (e) => {
+            const char = e.key || String.fromCharCode(e.which);
+            const currentValue = e.target.value.toUpperCase();
+            
+            // Permitir teclas especiales
+            if (e.keyCode === 8 || e.keyCode === 46 || e.keyCode === 37 || 
+                e.keyCode === 39 || e.keyCode === 9) {
+                return true;
+            }
+            
+            // Permitir funciones SQL: GETDATE(), NOW(), CURRENT_TIMESTAMP
+            const sqlFunctions = ['GETDATE()', 'NOW()', 'CURRENT_TIMESTAMP'];
+            for (const fn of sqlFunctions) {
+                if (fn.startsWith(currentValue + char.toUpperCase())) {
+                    return true; // Permitir escribir funciones SQL
+                }
+            }
+            
+            // Permitir caracteres de fecha: números, guiones, barras, dos puntos, espacios
+            if (/[\d\-\/:\s]/.test(char)) {
+                return true;
+            }
+            
+            // Si no es función SQL ni formato fecha, rechazar
+            if (!/[A-Za-z()]/.test(char)) {
+                e.preventDefault();
+                showTemporaryTooltip(e.target, '❌ Solo fechas (ej: 2024-01-15) o GETDATE()');
+                return false;
+            }
+            
+            return true;
+        };
+        
+        inputElement.setAttribute('placeholder', 'GETDATE() o 2024-01-15');
+    }
+    
+    // ✔️ TIPO BOOLEANO (BIT)
+    else if (upperType.includes('BIT')) {
+        validationFn = (e) => {
+            const char = e.key || String.fromCharCode(e.which);
+            const currentValue = e.target.value.toLowerCase();
+            
+            // Permitir teclas especiales
+            if (e.keyCode === 8 || e.keyCode === 46 || e.keyCode === 37 || 
+                e.keyCode === 39 || e.keyCode === 9) {
+                return true;
+            }
+            
+            // Permitir solo: 0, 1, true, false, yes, no
+            const validValues = ['0', '1', 'true', 'false', 'yes', 'no', 'si', 'sí'];
+            const testValue = (currentValue + char.toLowerCase()).trim();
+            
+            // Verificar si lo que está escribiendo puede formar un valor válido
+            const isPartialMatch = validValues.some(val => val.startsWith(testValue));
+            
+            if (!isPartialMatch) {
+                e.preventDefault();
+                showTemporaryTooltip(e.target, '❌ Solo: 0, 1, true, false, yes, no');
+                return false;
+            }
+            
+            return true;
+        };
+        
+        inputElement.setAttribute('placeholder', '0, 1, true, false');
+    }
+    
+    // 📝 TIPOS DE TEXTO (VARCHAR, NVARCHAR, CHAR, TEXT, etc.) - Sin restricciones
+    else {
+        // No hay restricciones para tipos de texto
+        inputElement.removeAttribute('inputmode');
+        inputElement.removeAttribute('pattern');
+        return;
+    }
+    
+    // Aplicar validación a eventos keypress y paste
+    if (validationFn) {
+        inputElement.addEventListener('keypress', validationFn);
+        inputElement.addEventListener('paste', (e) => {
+            setTimeout(() => {
+                const pastedValue = inputElement.value;
+                if (!isValidDefaultForType(pastedValue, sqlType)) {
+                    showTemporaryTooltip(inputElement, `❌ Valor pegado no es válido para tipo ${sqlType}`);
+                    inputElement.value = ''; // Limpiar si no es válido
+                }
+            }, 10);
+        });
+        
+        // Guardar referencia para poder removerlo después
+        inputElement._validationListener = validationFn;
+    }
+    
+    // 🆕 VALIDACIÓN AL SALIR DEL CAMPO (blur event)
+    // Remover listener anterior si existe
+    if (inputElement._blurValidator) {
+        inputElement.removeEventListener('blur', inputElement._blurValidator);
+    }
+    
+    // Crear nuevo listener de blur
+    const blurValidator = function() {
+        const value = inputElement.value.trim();
+        if (!value) {
+            // Campo vacío - remover cualquier error visual
+            inputElement.classList.remove('is-invalid');
+            removeValidationFeedback(inputElement);
+            return;
+        }
+        
+        // Validar el valor completo
+        const isValid = validateCompleteValue(value, sqlType);
+        
+        if (!isValid.valid) {
+            // Mostrar error visual
+            inputElement.classList.add('is-invalid');
+            showValidationFeedback(inputElement, isValid.message, isValid.suggestion);
+        } else {
+            // Remover error visual si estaba
+            inputElement.classList.remove('is-invalid');
+            removeValidationFeedback(inputElement);
+        }
+    };
+    
+    inputElement.addEventListener('blur', blurValidator);
+    inputElement._blurValidator = blurValidator;
+}
+
+/**
+ * 🆕 Valida el valor completo de un input (para evento blur)
+ * Retorna: { valid: boolean, message: string, suggestion: string }
+ */
+function validateCompleteValue(value, sqlType) {
+    const upperType = sqlType.toUpperCase();
+    
+    // TIPOS NUMÉRICOS ENTEROS
+    if (upperType.includes('INT') && !upperType.includes('POINT')) {
+        if (isNaN(value)) {
+            return {
+                valid: false,
+                message: `❌ Tipo ${sqlType}: Debe ser un número entero`,
+                suggestion: `Ejemplos válidos: 0, 1, -5, 100`
+            };
+        }
+        
+        if (value.includes('.') || value.includes(',')) {
+            return {
+                valid: false,
+                message: `❌ Tipo ${sqlType}: No puede contener decimales`,
+                suggestion: `Usa un número entero o cambia el tipo a FLOAT`
+            };
+        }
+        
+        return { valid: true };
+    }
+    
+    // TIPOS NUMÉRICOS DECIMALES
+    if (upperType.includes('FLOAT') || upperType.includes('DECIMAL') || 
+        upperType.includes('NUMERIC') || upperType.includes('MONEY') || 
+        upperType.includes('REAL')) {
+        
+        if (isNaN(value)) {
+            return {
+                valid: false,
+                message: `❌ Tipo ${sqlType}: Debe ser un número`,
+                suggestion: `Ejemplos válidos: 0.0, 12.50, -3.14`
+            };
+        }
+        
+        // 🔥 VALIDACIÓN ESTRICTA: Requiere punto decimal
+        if (!value.includes('.') && !value.includes(',')) {
+            return {
+                valid: false,
+                message: `❌ Tipo ${sqlType}: Requiere formato decimal`,
+                suggestion: `Agrega el punto: "${value}.0" o "${value}.00"`
+            };
+        }
+        
+        return { valid: true };
+    }
+    
+    // TIPOS DE FECHA
+    if (upperType.includes('DATE') || upperType.includes('TIME')) {
+        const upperValue = value.toUpperCase();
+        const sqlFunctions = ['GETDATE()', 'NOW()', 'CURRENT_TIMESTAMP', 'GETUTCDATE()', 'SYSDATETIME()'];
+        
+        if (sqlFunctions.includes(upperValue)) {
+            return { valid: true };
+        }
+        
+        const parsedDate = Date.parse(value);
+        if (isNaN(parsedDate)) {
+            return {
+                valid: false,
+                message: `❌ Tipo ${sqlType}: No es una fecha válida`,
+                suggestion: `Usa: 2024-01-15, 2024/01/15 10:30:00, o GETDATE()`
+            };
+        }
+        
+        return { valid: true };
+    }
+    
+    // TIPO BOOLEANO
+    if (upperType.includes('BIT')) {
+        const upperValue = value.toUpperCase();
+        const validBitValues = ['0', '1', 'TRUE', 'FALSE', 'YES', 'NO', 'SI', 'SÍ'];
+        
+        if (!validBitValues.includes(upperValue)) {
+            return {
+                valid: false,
+                message: `❌ Tipo BIT: Valor no válido`,
+                suggestion: `Usa: 0, 1, true, false, yes, no`
+            };
+        }
+        
+        return { valid: true };
+    }
+    
+    // TIPOS DE TEXTO - siempre válidos
+    return { valid: true };
+}
+
+/**
+ * 🆕 Muestra mensaje de error debajo del input (estilo Bootstrap)
+ */
+function showValidationFeedback(inputElement, message, suggestion) {
+    // Remover feedback anterior si existe
+    removeValidationFeedback(inputElement);
+    
+    // Crear elemento de feedback
+    const feedback = document.createElement('div');
+    feedback.className = 'invalid-feedback d-block';
+    feedback.style.cssText = 'font-size: 0.875rem; margin-top: 0.25rem;';
+    feedback.innerHTML = `
+        <strong>${message}</strong>
+        ${suggestion ? `<br><small class="text-muted">💡 ${suggestion}</small>` : ''}
+    `;
+    
+    // Agregar clase de identificación para poder removerlo después
+    feedback.classList.add('validation-feedback-custom');
+    
+    // Insertar después del input
+    inputElement.parentNode.insertBefore(feedback, inputElement.nextSibling);
+}
+
+/**
+ * 🆕 Remueve mensaje de error del input
+ */
+function removeValidationFeedback(inputElement) {
+    const feedback = inputElement.parentNode.querySelector('.validation-feedback-custom');
+    if (feedback) {
+        feedback.remove();
+    }
+}
+
+/**
+ * 🆕 Muestra un tooltip temporal sobre el input
+ */
+function showTemporaryTooltip(element, message) {
+    // Crear tooltip
+    const tooltip = document.createElement('div');
+    tooltip.className = 'validation-tooltip';
+    tooltip.textContent = message;
+    tooltip.style.cssText = `
+        position: absolute;
+        background: #dc3545;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        z-index: 10000;
+        white-space: nowrap;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        animation: fadeInOut 2s ease-in-out;
+    `;
+    
+    // Posicionar tooltip
+    const rect = element.getBoundingClientRect();
+    tooltip.style.left = `${rect.left}px`;
+    tooltip.style.top = `${rect.bottom + 5}px`;
+    
+    document.body.appendChild(tooltip);
+    
+    // Remover después de 2 segundos
+    setTimeout(() => {
+        tooltip.remove();
+    }, 2000);
+}
+
+/**
+ * 🆕 Valida toda la configuración antes de guardar el proceso
+ * Retorna: { isValid: boolean, errors: Array, warnings: Array }
+ */
+function validateConfigurationBeforeSave() {
+    const errors = [];
+    const warnings = [];
+    
+    console.log('🔍 Validando configuración antes de guardar...');
+    
+    // Iterar sobre todas las hojas seleccionadas
+    Array.from(selectedSheets).forEach(sheetName => {
+        const selectedCols = selectedColumns[sheetName] || [];
+        
+        selectedCols.forEach(originalName => {
+            const defaultInput = document.querySelector(`input.column-default-input[data-sheet="${sheetName}"][data-column="${originalName}"]`);
+            const typeSelector = document.querySelector(`select.column-type-selector[data-sheet="${sheetName}"][data-column="${originalName}"]`);
+            const nullableCheckbox = document.querySelector(`input.column-nullable-checkbox[data-sheet="${sheetName}"][data-column="${originalName}"]`);
+            
+            if (!defaultInput || !typeSelector) {
+                console.warn(`⚠️ No se encontraron elementos para columna "${originalName}" en hoja "${sheetName}"`);
+                return;
+            }
+            
+            const sqlType = typeSelector.value;
+            const defaultValue = defaultInput.value.trim();
+            const isNullable = nullableCheckbox ? nullableCheckbox.checked : true;
+            
+            console.log(`   📋 Validando columna "${originalName}" (${sqlType}): valor="${defaultValue}", nullable=${isNullable}`);
+            
+            // Si está marcado como nullable y no hay valor, es válido
+            if (isNullable && !defaultValue) {
+                console.log(`      ✅ OK - Nullable sin valor`);
+                return; // OK - permite NULL
+            }
+            
+            // Si NO es nullable y no hay valor, es un error
+            if (!isNullable && !defaultValue) {
+                console.log(`      ❌ ERROR - NO NULL pero sin valor`);
+                errors.push({
+                    tipo: 'VALOR_REQUERIDO',
+                    hoja: sheetName,
+                    columna: originalName,
+                    sqlType: sqlType,
+                    mensaje: `Campo marcado como NO NULL pero no tiene valor por defecto`,
+                    sugerencia: `Marca como "Puede ser NULL" o proporciona un valor por defecto`
+                });
+                return;
+            }
+            
+            // 🆕 Si HAY valor (nullable o no), validar su compatibilidad
+            if (defaultValue) {
+                console.log(`      🔍 Validando compatibilidad del valor...`);
+                const validationError = validateDefaultValueForType(defaultValue, sqlType, sheetName, originalName);
+                if (validationError) {
+                    console.log(`      ❌ ERROR encontrado:`, validationError.mensaje);
+                    errors.push(validationError);
+                } else {
+                    console.log(`      ✅ Valor válido`);
+                }
+            }
+        });
+    });
+    
+    console.log(`   Errores encontrados: ${errors.length}`);
+    console.log(`   Advertencias encontradas: ${warnings.length}`);
+    
+    return {
+        isValid: errors.length === 0,
+        errors: errors,
+        warnings: warnings
+    };
+}
+
+/**
+ * 🆕 Valida si un valor por defecto es compatible con un tipo SQL
+ * Retorna: objeto de error si no es válido, null si es válido
+ */
+function validateDefaultValueForType(value, sqlType, sheetName, columnName) {
+    const upperType = sqlType.toUpperCase();
+    const upperValue = value.toUpperCase();
+    
+    console.log(`         🔬 validateDefaultValueForType("${value}", "${sqlType}")`);
+    
+    // TIPOS NUMÉRICOS ENTEROS
+    if (upperType.includes('INT') && !upperType.includes('POINT')) {
+        // Permitir valores numéricos y funciones SQL
+        if (isNaN(value) && !upperValue.includes('IDENTITY') && !upperValue.includes('SEQUENCE')) {
+            return {
+                tipo: 'TIPO_INCOMPATIBLE_INT',
+                hoja: sheetName,
+                columna: columnName,
+                sqlType: sqlType,
+                valorActual: value,
+                mensaje: `Tipo ${sqlType} requiere un número entero`,
+                detalle: `El valor "${value}" no es un número válido`,
+                sugerencia: `Usa un número entero como: 0, 1, -5, 100, etc.`
+            };
+        }
+        
+        // Validar que sea entero (no decimal)
+        if (!isNaN(value) && value.includes('.')) {
+            return {
+                tipo: 'TIPO_REQUIERE_ENTERO',
+                hoja: sheetName,
+                columna: columnName,
+                sqlType: sqlType,
+                valorActual: value,
+                mensaje: `Tipo ${sqlType} requiere un número entero (sin decimales)`,
+                detalle: `El valor "${value}" contiene decimales`,
+                sugerencia: `Usa un número entero o cambia el tipo a FLOAT/DECIMAL`
+            };
+        }
+        
+        return null; // Válido
+    }
+    
+    // TIPOS NUMÉRICOS DECIMALES
+    if (upperType.includes('FLOAT') || upperType.includes('DECIMAL') || 
+        upperType.includes('NUMERIC') || upperType.includes('MONEY') || 
+        upperType.includes('REAL')) {
+        
+        console.log(`         ➡️ Detectado tipo DECIMAL/FLOAT`);
+        
+        if (isNaN(value)) {
+            console.log(`         ❌ No es numérico`);
+            return {
+                tipo: 'TIPO_INCOMPATIBLE_DECIMAL',
+                hoja: sheetName,
+                columna: columnName,
+                sqlType: sqlType,
+                valorActual: value,
+                mensaje: `Tipo ${sqlType} requiere un número decimal`,
+                detalle: `El valor "${value}" no es un número válido`,
+                sugerencia: `Usa un número decimal como: 0.0, 12.50, -3.14, etc.`
+            };
+        }
+        
+        // 🆕 VALIDAR FORMATO DECIMAL: debe contener punto decimal
+        if (!value.includes('.') && !value.includes(',')) {
+            console.log(`         ❌ No contiene punto decimal`);
+            return {
+                tipo: 'TIPO_REQUIERE_FORMATO_DECIMAL',
+                hoja: sheetName,
+                columna: columnName,
+                sqlType: sqlType,
+                valorActual: value,
+                mensaje: `Tipo ${sqlType} requiere formato decimal explícito`,
+                detalle: `El valor "${value}" es un número entero, pero el tipo requiere decimales`,
+                sugerencia: `Agrega el punto decimal: "${value}.0" o "${value}.00"`
+            };
+        }
+        
+        console.log(`         ✅ Válido (tiene punto decimal)`);
+        return null; // Válido
+    }
+    
+    // TIPOS DE FECHA
+    if (upperType.includes('DATE') || upperType.includes('TIME')) {
+        // Permitir funciones SQL
+        const sqlFunctions = ['GETDATE()', 'NOW()', 'CURRENT_TIMESTAMP', 'GETUTCDATE()', 'SYSDATETIME()'];
+        if (sqlFunctions.includes(upperValue)) {
+            return null; // Válido
+        }
+        
+        // Intentar parsear como fecha
+        const parsedDate = Date.parse(value);
+        if (isNaN(parsedDate)) {
+            return {
+                tipo: 'TIPO_INCOMPATIBLE_FECHA',
+                hoja: sheetName,
+                columna: columnName,
+                sqlType: sqlType,
+                valorActual: value,
+                mensaje: `Tipo ${sqlType} requiere una fecha válida o función SQL`,
+                detalle: `El valor "${value}" no es una fecha reconocible`,
+                sugerencia: `Usa formato: 2024-01-15, 2024/01/15 10:30:00, o GETDATE()`
+            };
+        }
+        
+        return null; // Válido
+    }
+    
+    // TIPO BOOLEANO (BIT)
+    if (upperType.includes('BIT')) {
+        const validBitValues = ['0', '1', 'TRUE', 'FALSE', 'YES', 'NO', 'SI', 'SÍ'];
+        if (!validBitValues.includes(upperValue)) {
+            return {
+                tipo: 'TIPO_INCOMPATIBLE_BIT',
+                hoja: sheetName,
+                columna: columnName,
+                sqlType: sqlType,
+                valorActual: value,
+                mensaje: `Tipo BIT requiere un valor booleano`,
+                detalle: `El valor "${value}" no es un valor booleano válido`,
+                sugerencia: `Usa: 0, 1, true, false, yes, no`
+            };
+        }
+        
+        return null; // Válido
+    }
+    
+    // TIPOS DE TEXTO - siempre válidos (solo advertencia de longitud)
+    if (upperType.includes('VARCHAR') || upperType.includes('CHAR') || upperType.includes('TEXT')) {
+        // Extraer longitud máxima si existe
+        const lengthMatch = sqlType.match(/\((\d+)\)/);
+        if (lengthMatch) {
+            const maxLength = parseInt(lengthMatch[1]);
+            if (value.length > maxLength) {
+                // Esto es una advertencia, no error crítico
+                return {
+                    tipo: 'ADVERTENCIA_LONGITUD',
+                    hoja: sheetName,
+                    columna: columnName,
+                    sqlType: sqlType,
+                    valorActual: value,
+                    mensaje: `Valor por defecto excede la longitud del campo`,
+                    detalle: `Longitud actual: ${value.length} | Máximo: ${maxLength}`,
+                    sugerencia: `Reduce el texto o aumenta el tamaño a VARCHAR(${value.length + 50})`,
+                    severidad: 'WARNING'
+                };
+            }
+        }
+        
+        return null; // Válido
+    }
+    
+    // Otros tipos - aceptar todo
+    return null;
+}
+
+/**
+ * 🆕 Muestra modal con errores y advertencias de validación
+ */
+function showValidationErrorModal(errors, warnings) {
+    const modalHtml = `
+        <div class="modal fade" id="validationErrorModal" tabindex="-1" aria-labelledby="validationErrorModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title" id="validationErrorModalLabel">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            Errores de Validación
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-3">
+                            <strong>No se puede guardar el proceso debido a los siguientes errores:</strong>
+                        </p>
+                        
+                        ${errors.length > 0 ? `
+                            <div class="alert alert-danger">
+                                <h6 class="alert-heading">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                    Errores Críticos (${errors.length})
+                                </h6>
+                                <hr>
+                                <div class="validation-errors-list">
+                                    ${errors.map((error, index) => `
+                                        <div class="validation-error-item mb-3 p-3 border-start border-danger border-4 bg-light">
+                                            <div class="d-flex align-items-start">
+                                                <span class="badge bg-danger me-2">${index + 1}</span>
+                                                <div class="flex-grow-1">
+                                                    <div class="fw-bold text-danger mb-1">
+                                                        ${error.mensaje}
+                                                    </div>
+                                                    <div class="small mb-2">
+                                                        <strong>Hoja:</strong> <code>${error.hoja}</code> | 
+                                                        <strong>Columna:</strong> <code>${error.columna}</code> | 
+                                                        <strong>Tipo SQL:</strong> <code>${error.sqlType}</code>
+                                                    </div>
+                                                    ${error.detalle ? `
+                                                        <div class="small text-muted mb-1">
+                                                            <i class="bi bi-info-circle"></i> ${error.detalle}
+                                                        </div>
+                                                    ` : ''}
+                                                    ${error.valorActual ? `
+                                                        <div class="small mb-1">
+                                                            <strong>Valor actual:</strong> <code class="text-danger">"${error.valorActual}"</code>
+                                                        </div>
+                                                    ` : ''}
+                                                    ${error.sugerencia ? `
+                                                        <div class="alert alert-info py-2 px-3 mb-0 mt-2">
+                                                            <i class="bi bi-lightbulb-fill"></i>
+                                                            <strong>Sugerencia:</strong> ${error.sugerencia}
+                                                        </div>
+                                                    ` : ''}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${warnings.length > 0 ? `
+                            <div class="alert alert-warning mt-3">
+                                <h6 class="alert-heading">
+                                    <i class="bi bi-exclamation-triangle-fill"></i>
+                                    Advertencias (${warnings.length})
+                                </h6>
+                                <hr>
+                                <ul class="mb-0">
+                                    ${warnings.map(warning => `
+                                        <li>${warning.mensaje} - <strong>${warning.hoja}</strong> / <code>${warning.columna}</code></li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="alert alert-light border mt-3">
+                            <h6 class="mb-2">
+                                <i class="bi bi-tools"></i>
+                                ¿Cómo corregir estos errores?
+                            </h6>
+                            <ol class="mb-0 small">
+                                <li>Revisa cada error listado arriba</li>
+                                <li>Corrige los valores por defecto según el tipo SQL seleccionado</li>
+                                <li>O marca la columna como "Puede ser NULL" si no necesitas valor por defecto</li>
+                                <li>Vuelve a intentar guardar el proceso</li>
+                            </ol>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+                            <i class="bi bi-arrow-left"></i>
+                            Volver a Corregir
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remover modal anterior si existe
+    const oldModal = document.getElementById('validationErrorModal');
+    if (oldModal) {
+        oldModal.remove();
+    }
+    
+    // Agregar nuevo modal al DOM
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Mostrar modal
+    const modal = new bootstrap.Modal(document.getElementById('validationErrorModal'));
+    modal.show();
+    
+    // Limpiar modal del DOM cuando se cierre
+    document.getElementById('validationErrorModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
+// Agregar estilos de animación
+if (!document.getElementById('validation-styles')) {
+    const style = document.createElement('style');
+    style.id = 'validation-styles';
+    style.textContent = `
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-5px); }
+            10% { opacity: 1; transform: translateY(0); }
+            90% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-5px); }
+        }
+        
+        .validation-tooltip {
+            pointer-events: none;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+/**
+ * Valida si un valor default es apropiado para un tipo SQL
+ */
+function isValidDefaultForType(value, sqlType) {
+    const upperType = sqlType.toUpperCase();
+    
+    // Tipos numéricos
+    if (upperType.includes('INT') || upperType.includes('FLOAT') || 
+        upperType.includes('DECIMAL') || upperType.includes('MONEY')) {
+        return !isNaN(value);
+    }
+    
+    // Tipos de fecha
+    if (upperType.includes('DATE') || upperType.includes('TIME')) {
+        return value.toUpperCase() === 'GETDATE()' || !isNaN(Date.parse(value));
+    }
+    
+    // Tipos de texto y booleanos siempre son válidos
+    return true;
+}
+
+function updateColumnSelection(sheetName) {
+    // 🔧 FIX: Filtrar SOLO los checkboxes de columnas con clase 'column-selector'
+    const checkboxes = document.querySelectorAll(`input.column-selector[data-sheet="${sheetName}"][data-column]`);
+    const selected = [];
+    
+    // 🐛 DEBUG: Detectar duplicados en el DOM
+    const seenColumns = new Set();
+    const duplicates = [];
+    
+    console.log(`🔍 DEBUG updateColumnSelection("${sheetName}"):`);
+    console.log(`   Total checkboxes encontrados: ${checkboxes.length}`);
+    
+    // Calcular el slug de la hoja UNA VEZ fuera del loop
+    const sheetSlug = sheetName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+    
+    checkboxes.forEach((checkbox, index) => {
+        const isChecked = checkbox.checked;
+        const columnName = checkbox.dataset.column;
+        
+        // 🐛 DEBUG: Detectar duplicados
+        if (seenColumns.has(columnName)) {
+            duplicates.push({
+                column: columnName,
+                checkboxId: checkbox.id,
+                index: index
+            });
+            console.warn(`⚠️ DUPLICADO DETECTADO: Columna "${columnName}" aparece múltiples veces`);
+            console.warn(`   Checkbox ID: ${checkbox.id}, Índice: ${index}`);
+        }
+        seenColumns.add(columnName);
+        seenColumns.add(columnName);
+        
+        if (isChecked) {
+            selected.push(columnName);
+        }
+        
+        // Habilitar/deshabilitar el input de renombre correspondiente
+        const renameInput = document.querySelector(`input.column-rename-input[data-sheet="${sheetName}"][data-original-name="${columnName}"]`);
+        if (renameInput) {
+            renameInput.disabled = !isChecked;
+        }
+        
+        // Obtener el counter del ID del checkbox (formato: col-sheetslug-counter)
+        const checkboxId = checkbox.id;
+        const counter = checkboxId.split('-').pop(); // Obtiene el último número
+        
+        // Buscar elementos de configuración
+        const configRow = document.getElementById(`config-${sheetSlug}-${counter}`);
+        const nullableCheckbox = document.getElementById(`nullable-${sheetSlug}-${counter}`);
+        const defaultInput = document.getElementById(`default-${sheetSlug}-${counter}`);
+        const suggestBtn = document.getElementById(`suggest-${sheetSlug}-${counter}`);
+        const typeSelector = document.getElementById(`type-${sheetSlug}-${counter}`);  // 🆕 NUEVO
+        
+        // 🐛 DEBUG: Verificar si se encontraron los elementos
+        if (isChecked) {
+            console.log(`✅ Columna seleccionada: "${columnName}" (counter: ${counter})`);
+            console.log(`   configRow encontrado: ${!!configRow}`);
+            console.log(`   nullableCheckbox encontrado: ${!!nullableCheckbox}`);
+            console.log(`   defaultInput encontrado: ${!!defaultInput}`);
+            console.log(`   typeSelector encontrado: ${!!typeSelector}`);  // 🆕 NUEVO
+        }
+        
+        if (configRow) {
+            if (isChecked) {
+                // Columna seleccionada: mostrar configuración
+                configRow.style.display = 'flex';
+                console.log(`   ✅ configRow.display = 'flex' para "${columnName}"`);
+                
+                // 🆕 NUEVO: Habilitar selector de tipo SQL
+                if (typeSelector) {
+                    typeSelector.disabled = false;
+                }
+                
+                if (nullableCheckbox) {
+                    nullableCheckbox.disabled = false;
+                }
+                
+                // ✅ HABILITAR/DESHABILITAR defaultInput según nullable
+                if (defaultInput) {
+                    // 🆕 MODIFICADO: Tomar tipo del selector si está disponible
+                    const sqlType = typeSelector ? typeSelector.value : defaultInput.dataset.sqlType;
+                    const contextualPlaceholder = getPlaceholderForType(sqlType);
+                    defaultInput.placeholder = contextualPlaceholder;
+                    
+                    // ✅ FIX: Habilitar el input según el estado de nullable
+                    if (nullableCheckbox && nullableCheckbox.checked) {
+                        // Si nullable está marcado, deshabilitar defaultInput
+                        defaultInput.disabled = true;
+                        defaultInput.value = 'NULL';
+                        defaultInput.classList.add('text-muted');
+                        if (suggestBtn) suggestBtn.disabled = true;
+                    } else {
+                        // Si nullable NO está marcado, habilitar defaultInput
+                        defaultInput.disabled = false;
+                        defaultInput.classList.remove('text-muted');
+                        if (suggestBtn) suggestBtn.disabled = false;
+                        
+                        // Si está vacío o es NULL, sugerir valor
+                        if (!defaultInput.value || defaultInput.value === 'NULL') {
+                            defaultInput.value = getDefaultValueSuggestion(sqlType);
+                        }
+                    }
+                    
+                    // 🆕 APLICAR VALIDACIÓN EN TIEMPO REAL
+                    setupInputValidationForType(defaultInput, sqlType);
+                }
+                
+                // Inicializar tooltips de Bootstrap para los nuevos elementos visibles
+                initializeTooltips();
+            } else {
+                // Columna NO seleccionada: ocultar y resetear configuración
+                configRow.style.display = 'none';
+                
+                // 🆕 NUEVO: Deshabilitar selector de tipo SQL
+                if (typeSelector) {
+                    typeSelector.disabled = true;
+                }
+                
+                if (nullableCheckbox) {
+                    nullableCheckbox.disabled = true;
+                    nullableCheckbox.checked = false;
+                }
+                if (defaultInput) {
+                    defaultInput.disabled = true;
+                    defaultInput.value = '';
+                }
+                if (suggestBtn) {
+                    suggestBtn.disabled = true;
+                }
+            }
+        } else {
+            if (isChecked) {
+                console.error(`❌ NO SE ENCONTRÓ configRow para: config-${sheetSlug}-${counter}`);
+                console.error(`   Hoja: "${sheetName}" → Slug: "${sheetSlug}"`);
+                console.error(`   Columna: "${columnName}", Checkbox ID: "${checkboxId}"`);
+            }
+        }
+    });
+    
+    // 🐛 DEBUG: Reportar duplicados al final
+    if (duplicates.length > 0) {
+        console.error(`❌ TOTAL DE DUPLICADOS ENCONTRADOS: ${duplicates.length}`);
+        console.error(`   Columnas únicas: ${seenColumns.size}`);
+        console.error(`   Checkboxes totales: ${checkboxes.length}`);
+        console.error(`   Ratio: ${checkboxes.length / seenColumns.size}x duplicación`);
+        console.table(duplicates);
+    }
+    
+    selectedColumns[sheetName] = selected;
+    
+    // Agregar o quitar automáticamente la hoja de selectedSheets según si tiene columnas
+    if (selected.length > 0) {
+        selectedSheets.add(sheetName);
+        // Actualizar visualmente la pestaña
+        const tab = document.querySelector(`[data-sheet="${sheetName}"]`);
+        if (tab) {
+            tab.classList.add('selected');
+        }
+    } else {
+        selectedSheets.delete(sheetName);
+        // Actualizar visualmente la pestaña
+        const tab = document.querySelector(`[data-sheet="${sheetName}"]`);
+        if (tab) {
+            tab.classList.remove('selected');
+        }
+    }
+    
+    // Actualizar badge en la pestaña
+    const badge = document.getElementById(`badge-${sheetName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`);
+    if (selected.length > 0) {
+        badge.textContent = selected.length;
+        badge.style.display = 'flex';
+    } else {
+        badge.style.display = 'none';
+    }
+    
+    // Actualizar resumen de la hoja
+    updateSheetSummary(sheetName);
+    
+    // Actualizar vista previa
+    updatePreviewHighlighting(sheetName);
+    
+    // Actualizar estado general
+    updateUI();
+}
+
+function updateSheetSummary(sheetName) {
+    const summaryDiv = document.getElementById(`summary-${sheetName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`);
+    const tagsDiv = document.getElementById(`selected-tags-${sheetName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`);
+    const columns = selectedColumns[sheetName] || [];
+    
+    if (columns.length > 0) {
+        summaryDiv.style.display = 'block';
+        tagsDiv.innerHTML = columns.map(col => 
+            `<span class="selected-column-tag">${col}</span>`
+        ).join('');
+    } else {
+        summaryDiv.style.display = 'none';
+    }
+}
+
+function updatePreviewHighlighting(sheetName) {
+    // Resaltar columnas seleccionadas en la vista previa
+    const selectedCols = selectedColumns[sheetName] || [];
+    
+    document.querySelectorAll(`[data-sheet="${sheetName}"][data-column]`).forEach(element => {
+        const column = element.dataset.column;
+        if (selectedCols.includes(column)) {
+            element.classList.add('table-success');
+        } else {
+            element.classList.remove('table-success');
+        }
+    });
+}
+
+function updateUI() {
+    const hasSelectedSheets = selectedSheets.size > 0;
+    const hasSelectedColumns = Object.values(selectedColumns).some(cols => cols.length > 0);
+    
+    // Habilitar botones solo si hay hojas y columnas seleccionadas
+    const canSave = hasSelectedSheets && hasSelectedColumns;
+    document.getElementById('saveProcessBtn').disabled = !canSave;
+    document.getElementById('saveAndRunBtn').disabled = !canSave;
+    
+    // Actualizar resumen global
+    updateGlobalSummary();
+}
+
+function updateGlobalSummary() {
+    const summaryDiv = document.getElementById('globalSummary');
+    const contentDiv = document.getElementById('globalSummaryContent');
+    
+    const totalSheets = selectedSheets.size;
+    const totalColumns = Object.values(selectedColumns).reduce((sum, cols) => sum + cols.length, 0);
+    
+    if (totalSheets > 0 && totalColumns > 0) {
+        summaryDiv.style.display = 'block';
+        contentDiv.innerHTML = `
+            <p><strong>Hojas seleccionadas:</strong> ${totalSheets}</p>
+            <p><strong>Total columnas:</strong> ${totalColumns}</p>
+            <ul class="mb-0">
+                ${Array.from(selectedSheets).map(sheet => 
+                    `<li><strong>${sheet}:</strong> ${selectedColumns[sheet]?.length || 0} columnas</li>`
+                ).join('')}
+            </ul>
+        `;
+    } else {
+        summaryDiv.style.display = 'none';
+    }
+}
+
+function validateSelection() {
+    const hasColumns = Object.values(selectedColumns).some(cols => cols.length > 0);
+    if (!hasColumns) {
+        alert('Debes seleccionar al menos una columna de alguna hoja para continuar.');
+        return false;
+    }
+    
+    return true;
+}
+
+function showSaveModal(andRun = false) {
+    // Llenar preview de tablas
+    const previewDiv = document.getElementById('tablePreview');
+    previewDiv.innerHTML = Array.from(selectedSheets).map(sheet => {
+        const columns = selectedColumns[sheet] || [];
+        return `
+            <div class="mb-2">
+                <strong>Tabla: </strong><code id="preview-table-${sheet.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}">NombreProceso_${sheet}</code><br>
+                <small class="text-muted">Columnas: ${columns.join(', ')}</small>
+            </div>
+        `;
+    }).join('');
+    
+    // Mostrar/ocultar botones según el modo
+    document.getElementById('confirmSaveBtn').style.display = andRun ? 'none' : 'inline-block';
+    document.getElementById('confirmSaveAndRunBtn').style.display = andRun ? 'inline-block' : 'none';
+    
+    // Mostrar modal
+    new bootstrap.Modal(document.getElementById('saveProcessModal')).show();
+    
+    // Actualizar preview cuando cambie el nombre
+    document.getElementById('processName').addEventListener('input', function() {
+        const processName = this.value.replace(/[^a-zA-Z0-9]/g, '_') || 'NombreProceso';
+        Array.from(selectedSheets).forEach(sheet => {
+            const tableNameElement = document.getElementById(`preview-table-${sheet.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`);
+            if (tableNameElement) {
+                tableNameElement.textContent = `${processName}_${sheet}`;
+            }
+        });
+    });
+}
+
+function saveProcess(andRun = false, duplicateAction = null) {
+    // 🆕 VALIDAR CONFIGURACIÓN ANTES DE GUARDAR
+    const validationResult = validateConfigurationBeforeSave();
+    if (!validationResult.isValid) {
+        showValidationErrorModal(validationResult.errors, validationResult.warnings);
+        return; // Detener guardado
+    }
+    
+    // Construir mapeos de columnas CON CONFIGURACIÓN COMPLETA
+    const columnMappings = {};
+    
+    Array.from(selectedSheets).forEach(sheetName => {
+        const selectedCols = selectedColumns[sheetName] || [];
+        
+        selectedCols.forEach(originalName => {
+            const renameInput = document.querySelector(`input.column-rename-input[data-sheet="${sheetName}"][data-original-name="${originalName}"]`);
+            const nullableCheckbox = document.querySelector(`input.column-nullable-checkbox[data-sheet="${sheetName}"][data-column="${originalName}"]`);
+            const defaultInput = document.querySelector(`input.column-default-input[data-sheet="${sheetName}"][data-column="${originalName}"]`);
+            const typeSelector = document.querySelector(`select.column-type-selector[data-sheet="${sheetName}"][data-column="${originalName}"]`);  // 🆕 NUEVO
+            
+            if (renameInput) {
+                const customName = renameInput.value.trim() || originalName;
+                const nullable = nullableCheckbox ? nullableCheckbox.checked : true;  // Por defecto permite NULL
+                const defaultValue = (defaultInput && !defaultInput.disabled) ? defaultInput.value.trim() : null;
+                
+                // 🆕 MODIFICADO: Tomar tipo SQL del selector en lugar del data attribute
+                let sqlType = 'NVARCHAR(255)';  // Default fallback
+                if (typeSelector && !typeSelector.disabled) {
+                    sqlType = typeSelector.value;
+                } else if (defaultInput && defaultInput.dataset.sqlType) {
+                    sqlType = defaultInput.dataset.sqlType;
+                }
+                
+                // Inicializar objeto de la hoja si no existe
+                if (!columnMappings[sheetName]) {
+                    columnMappings[sheetName] = {};
+                }
+                
+                // Guardar configuración completa de la columna
+                columnMappings[sheetName][originalName] = {
+                    renamed_to: customName,
+                    sql_type: sqlType,
+                    nullable: nullable,
+                    default_value: nullable ? null : (defaultValue || getDefaultValueSuggestion(sqlType))
+                };
+            }
+        });
+    });
+    
+    // 🆕 NUEVO: Construir mapeos de nombres de hojas
+    const sheetMappings = {};
+    Object.keys(sheetRenames).forEach(originalName => {
+        const customName = sheetRenames[originalName];
+        // Solo agregar si el nombre personalizado es diferente al original normalizado
+        if (customName && customName !== originalName.toLowerCase()) {
+            sheetMappings[originalName] = customName;
+        }
+    });
+    
+    const formData = {
+        name: document.getElementById('processName').value,
+        description: document.getElementById('processDescription').value,
+        source_id: document.getElementById('sourceId').value,
+        selected_sheets: Array.from(selectedSheets),
+        selected_columns: selectedColumns,
+        column_mappings: Object.keys(columnMappings).length > 0 ? columnMappings : null,
+        sheet_mappings: Object.keys(sheetMappings).length > 0 ? sheetMappings : null,  // 🆕 NUEVO
+        target_db: document.getElementById('targetDB').value
+    };
+    
+    // Agregar acción de duplicado si se especificó
+    if (duplicateAction) {
+        formData.duplicate_action = duplicateAction;
+    }
+    
+    // Validar datos
+    if (!formData.name.trim()) {
+        alert('El nombre del proceso es requerido.');
+        return;
+    }
+    
+    // 🐛 DEBUG: Ver qué se está enviando al backend
+    console.log('🚀 DEBUG saveProcess - Datos a enviar:');
+    console.log('selectedColumns:', selectedColumns);
+    console.log('formData.selected_columns:', formData.selected_columns);
+    console.log('Ejemplo de columna:', Object.values(formData.selected_columns)[0]?.[0]);
+    
+    // Enviar datos
+    fetch('/automatizacion/api/save_excel_multi_process/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Verificar si se detectó un duplicado
+        if (data.duplicate_detected) {
+            // Mostrar modal de confirmación
+            showDuplicateModal(data.existing_process_name, data.existing_process_id, andRun);
+            return;
+        }
+        
+        if (data.success) {
+            if (andRun) {
+                window.location.href = `/automatizacion/process/${data.process_id}/run/`;
+            } else {
+                window.location.href = `/automatizacion/process/${data.process_id}/`;
+            }
+        } else {
+            alert('Error guardando el proceso: ' + (data.error || 'Error desconocido'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error de conexión al guardar el proceso.');
+    });
+}
+
+// Función para mostrar modal de duplicados - COMPLETAMENTE REESCRITA
+function showDuplicateModal(existingProcessName, existingProcessId, andRun) {
+    // Guardar estado andRun para uso posterior
+    window.pendingRunAfterSave = andRun;
+    
+    // Actualizar el contenido del modal con el nombre del proceso existente
+    document.getElementById('duplicateProcessName').textContent = existingProcessName || document.getElementById('processName').value;
+    
+    // Obtener el modal
+    const modalElement = document.getElementById('duplicateProcessModal');
+    
+    if (modalElement) {
+        // Aplicar clases para mostrar el modal
+        modalElement.style.display = 'flex';
+        modalElement.classList.add('show');
+        
+        // Agregar clase al body para desactivar scroll y aplicar blur
+        document.body.classList.add('modal-open');
+        document.body.style.overflow = 'hidden';
+        
+        // OCULTAR SIDEBAR COMPLETAMENTE - BÚSQUEDA EXHAUSTIVA
+        const sidebarSelectors = [
+            '.sidebar', '#sidebar', '.sidebar-wrapper', '.nav-sidebar', '.main-sidebar',
+            '.sidebar-container', '.side-nav', '.sidenav', '.left-sidebar', '.navigation',
+            '.nav-left', '.sidebar-nav', 'aside', 'nav.sidebar', '.menu-sidebar',
+            '.sidebar-menu', '.nav-menu', '.main-nav', '.side-panel', '.nav-panel'
+        ];
+        
+        sidebarSelectors.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(el => {
+                el.style.display = 'none';
+                el.style.visibility = 'hidden';
+                el.style.opacity = '0';
+                el.style.pointerEvents = 'none';
+                el.style.zIndex = '-9999';
+                el.style.position = 'absolute';
+                el.style.left = '-9999px';
+                el.style.width = '0';
+                el.style.height = '0';
+                el.style.overflow = 'hidden';
+            });
+        });
+        
+        // Ocultar botones de toggle del sidebar - BÚSQUEDA EXHAUSTIVA
+        const toggleSelectors = [
+            '.sidebar-toggle', '.navbar-toggle', '.menu-toggle', '.hamburger',
+            '.nav-toggle', '.menu-btn', '.toggle-sidebar', '.sidebar-btn',
+            'button[data-toggle="sidebar"]', '.btn-sidebar', '.menu-icon',
+            '.nav-icon', '.toggle-btn', '.sidebar-trigger'
+        ];
+        
+        toggleSelectors.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(btn => {
+                btn.style.display = 'none';
+                btn.style.visibility = 'hidden';
+                btn.style.pointerEvents = 'none';
+                btn.style.opacity = '0';
+            });
+        });
+        
+        // Ocultar overlay del sidebar si existe - BÚSQUEDA EXHAUSTIVA
+        const overlaySelectors = [
+            '.sidebar-overlay', '.overlay', '.backdrop', '.sidebar-backdrop', 
+            '.nav-overlay', '.menu-overlay', '.sidebar-mask'
+        ];
+        
+        overlaySelectors.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(overlay => {
+                overlay.style.display = 'none';
+                overlay.style.visibility = 'hidden';
+                overlay.style.opacity = '0';
+                overlay.style.zIndex = '-9999';
+            });
+        });
+        
+        // Forzar que el contenido principal ocupe toda la pantalla
+        const contentSelectors = [
+            '.main-content', '.content-wrapper', '.page-content', 
+            '.main-panel', '.content', '.main', '.wrapper'
+        ];
+        
+        contentSelectors.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(content => {
+                content.style.marginLeft = '0';
+                content.style.width = '100vw';
+                content.style.paddingLeft = '0';
+            });
+        });
+        
+        // Aplicar blur al contenido principal
+        const wrapper = document.getElementById('wrapper');
+        if (wrapper) {
+            wrapper.style.filter = 'blur(2px)';
+            wrapper.style.pointerEvents = 'none';
+        }
+        
+        // Focus en el modal
+        modalElement.focus();
+        
+        // Asegurar que el contenido sea visible
+        setTimeout(function() {
+            const modalContent = modalElement.querySelector('.modal-content');
+            if (modalContent) {
+                modalContent.style.backgroundColor = 'white';
+                modalContent.style.color = '#212529';
+                
+                // Forzar colores en todos los elementos hijos
+                const allElements = modalContent.querySelectorAll('*');
+                allElements.forEach(el => {
+                    if (!el.classList.contains('btn')) {
+                        el.style.color = '#212529';
+                    }
+                });
+            }
+        }, 50);
+    }
+}
+
+// Función para cerrar el modal
+function closeDuplicateModal() {
+    const modalElement = document.getElementById('duplicateProcessModal');
+    
+    if (modalElement) {
+        // Ocultar el modal
+        modalElement.style.display = 'none';
+        modalElement.classList.remove('show');
+        
+        // Restaurar el body
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        
+        // RESTAURAR SIDEBAR COMPLETAMENTE
+        const sidebarSelectors = [
+            '.sidebar', '#sidebar', '.sidebar-wrapper', '.nav-sidebar', '.main-sidebar',
+            '.sidebar-container', '.side-nav', '.sidenav', '.left-sidebar', '.navigation',
+            '.nav-left', '.sidebar-nav', 'aside', 'nav.sidebar', '.menu-sidebar',
+            '.sidebar-menu', '.nav-menu', '.main-nav', '.side-panel', '.nav-panel'
+        ];
+        
+        sidebarSelectors.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(el => {
+                el.style.display = '';
+                el.style.visibility = '';
+                el.style.opacity = '';
+                el.style.pointerEvents = '';
+                el.style.zIndex = '';
+                el.style.position = '';
+                el.style.left = '';
+                el.style.width = '';
+                el.style.height = '';
+                el.style.overflow = '';
+            });
+        });
+        
+        // Restaurar botones de toggle del sidebar
+        const toggleSelectors = [
+            '.sidebar-toggle', '.navbar-toggle', '.menu-toggle', '.hamburger',
+            '.nav-toggle', '.menu-btn', '.toggle-sidebar', '.sidebar-btn',
+            'button[data-toggle="sidebar"]', '.btn-sidebar', '.menu-icon',
+            '.nav-icon', '.toggle-btn', '.sidebar-trigger'
+        ];
+        
+        toggleSelectors.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(btn => {
+                btn.style.display = '';
+                btn.style.visibility = '';
+                btn.style.pointerEvents = '';
+                btn.style.opacity = '';
+            });
+        });
+        
+        // Restaurar overlays
+        const overlaySelectors = [
+            '.sidebar-overlay', '.overlay', '.backdrop', '.sidebar-backdrop', 
+            '.nav-overlay', '.menu-overlay', '.sidebar-mask'
+        ];
+        
+        overlaySelectors.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(overlay => {
+                overlay.style.display = '';
+                overlay.style.visibility = '';
+                overlay.style.opacity = '';
+                overlay.style.zIndex = '';
+            });
+        });
+        
+        // Restaurar contenido principal
+        const contentSelectors = [
+            '.main-content', '.content-wrapper', '.page-content', 
+            '.main-panel', '.content', '.main', '.wrapper'
+        ];
+        
+        contentSelectors.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(content => {
+                content.style.marginLeft = '';
+                content.style.width = '';
+                content.style.paddingLeft = '';
+            });
+        });
+        
+        // Quitar blur del contenido principal
+        const wrapper = document.getElementById('wrapper');
+        if (wrapper) {
+            wrapper.style.filter = '';
+            wrapper.style.pointerEvents = '';
+        }
+    }
+}
+
+// Event listeners para botones del modal de duplicados - MEJORADOS
+document.addEventListener('DOMContentLoaded', function() {
+    const updateBtn = document.getElementById('updateExistingBtnExcel');
+    const createBtn = document.getElementById('createNewBtnExcel');
+    const modalElement = document.getElementById('duplicateProcessModal');
+    const closeBtn = modalElement ? modalElement.querySelector('.btn-close') : null;
+    
+    if (updateBtn) {
+        updateBtn.addEventListener('click', function() {
+            closeDuplicateModal();
+            saveProcess(window.pendingRunAfterSave || false, 'update_existing');
+        });
+    }
+    
+    if (createBtn) {
+        createBtn.addEventListener('click', function() {
+            closeDuplicateModal();
+            saveProcess(window.pendingRunAfterSave || false, 'create_new');
+        });
+    }
+    
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+            closeDuplicateModal();
+        });
+    }
+    
+    // Cerrar modal al hacer click fuera
+    if (modalElement) {
+        modalElement.addEventListener('click', function(e) {
+            if (e.target === modalElement) {
+                closeDuplicateModal();
+            }
+        });
+    }
+    
+    // Cerrar modal con Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modalElement && modalElement.classList.contains('show')) {
+            closeDuplicateModal();
+        }
+    });
+});
+
+
+// Función auxiliar para obtener cookie CSRF
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

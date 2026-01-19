@@ -1,0 +1,624 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+
+{% block title %}Editar Proceso - {{ process.name }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'automatizacion:index' %}">Inicio</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'automatizacion:list_processes' %}">Procesos</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'automatizacion:view_process' process.id %}">{{ process.name }}</a></li>
+                <li class="breadcrumb-item active">Editar</li>
+            </ol>
+        </nav>
+        
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-edit me-2"></i>Editar Proceso: {{ process.name }}</h2>
+        </div>
+    </div>
+</div>
+
+<form method="post" class="row" id="editProcessForm">
+    {% csrf_token %}
+    
+    <div class="col-md-8">
+        <!-- Información General -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Información General</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="name" class="form-label">Nombre del Proceso</label>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ process.name }}" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="description" class="form-label">Descripción</label>
+                    <textarea class="form-control" id="description" name="description" rows="3">{{ process.description|default:"" }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        {% if process.source.source_type == 'excel' %}
+        <!-- Configuración Excel -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-file-excel me-2"></i>Configuración de Hojas Excel
+                    {% if is_cloud %}
+                    <span class="badge bg-info ms-2"><i class="fab fa-microsoft me-1"></i>OneDrive</span>
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>
+                    <strong>Archivo:</strong> {{ process.source.name }}
+                    {% if is_cloud %}
+                    <span class="text-info"><i class="fas fa-cloud ms-2 me-1"></i>Almacenado en OneDrive</span>
+                    {% endif %}
+                </p>
+                
+                {% if available_sheets %}
+                <div class="mb-3">
+                    <label class="form-label">Seleccionar Hojas a Procesar:</label>
+                    <div class="row">
+                        {% for sheet in available_sheets %}
+                        <div class="col-md-6 mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input sheet-checkbox" type="checkbox" 
+                                       value="{{ sheet }}" id="sheet_{{ forloop.counter }}"
+                                       {% if sheet in process.selected_sheets %}checked{% endif %}>
+                                <label class="form-check-label" for="sheet_{{ forloop.counter }}">
+                                    <i class="fas fa-table me-1"></i>{{ sheet }}
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <small class="text-muted">Seleccione las hojas que desea procesar del archivo Excel.</small>
+                </div>
+
+                <!-- Botón para recargar columnas desde origen -->
+                <div class="mb-3">
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="loadColumnsBtn">
+                        <i class="fas fa-sync-alt me-1"></i>Recargar Columnas desde Origen
+                    </button>
+                    <small class="text-muted ms-2">
+                        {% if is_cloud %}
+                        <i class="fab fa-microsoft me-1"></i>Descarga los datos más recientes de OneDrive
+                        {% else %}
+                        Actualiza las columnas desde el archivo
+                        {% endif %}
+                    </small>
+                </div>
+
+                <!-- Sección de Columnas por Hoja -->
+                <div id="columns-section" class="mt-4">
+                    <h6><i class="fas fa-columns me-1"></i>Columnas por Hoja:</h6>
+                    <small class="text-muted d-block mb-3">
+                        ✅ Los campos marcados se procesarán. Los desmarcados se ignorarán. 
+                        Puedes reactivar campos que hayas quitado anteriormente.
+                    </small>
+                    <div id="columns-container">
+                        {% if all_sheets_data %}
+                        {% for sheet_name, sheet_data in all_sheets_data.items %}
+                        <div class="columns-for-sheet mb-3 p-3 border rounded bg-light" data-sheet="{{ sheet_name }}">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-table me-2 text-primary"></i>
+                                    <strong>{{ sheet_name }}</strong>
+                                    <span class="badge bg-info ms-2">{{ sheet_data.columns|length }} campos disponibles</span>
+                                </h6>
+                                <button type="button" class="btn btn-sm btn-outline-secondary toggle-all-columns" data-sheet="{{ sheet_name }}">
+                                    <i class="fas fa-check-double me-1"></i>Marcar/Desmarcar todos
+                                </button>
+                            </div>
+                            <div class="row mt-3">
+                                {% for column in sheet_data.columns %}
+                                {% if process.selected_columns and sheet_name in process.selected_columns %}
+                                    {% with selected_cols=process.selected_columns|get_item:sheet_name %}
+                                        {% if column.name in selected_cols %}
+                                            {% comment %}Campo está seleccionado actualmente{% endcomment %}
+                                            <div class="col-md-4 mb-2">
+                                                <div class="form-check">
+                                                    <input class="form-check-input column-checkbox" 
+                                                           type="checkbox" checked
+                                                           data-sheet="{{ sheet_name }}" 
+                                                           value="{{ column.name }}"
+                                                           id="col_{{ sheet_name|slugify }}_{{ forloop.counter }}">
+                                                    <label class="form-check-label fw-bold text-success" for="col_{{ sheet_name|slugify }}_{{ forloop.counter }}">
+                                                        <i class="fas fa-check-circle me-1"></i>{{ column.name }}
+                                                        <small class="text-muted">({{ column.sql_type }})</small>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            {% comment %}Campo NO está seleccionado - mostrar desmarcado{% endcomment %}
+                                            <div class="col-md-4 mb-2">
+                                                <div class="form-check">
+                                                    <input class="form-check-input column-checkbox" 
+                                                           type="checkbox"
+                                                           data-sheet="{{ sheet_name }}" 
+                                                           value="{{ column.name }}"
+                                                           id="col_{{ sheet_name|slugify }}_{{ forloop.counter }}">
+                                                    <label class="form-check-label text-muted" for="col_{{ sheet_name|slugify }}_{{ forloop.counter }}">
+                                                        <i class="fas fa-circle me-1"></i>{{ column.name }}
+                                                        <small class="text-muted">({{ column.sql_type }})</small>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    {% endwith %}
+                                {% else %}
+                                    {% comment %}Primera vez - no hay columnas seleccionadas{% endcomment %}
+                                    <div class="col-md-4 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input column-checkbox" 
+                                                   type="checkbox"
+                                                   data-sheet="{{ sheet_name }}" 
+                                                   value="{{ column.name }}"
+                                                   id="col_{{ sheet_name|slugify }}_{{ forloop.counter }}">
+                                            <label class="form-check-label text-muted" for="col_{{ sheet_name|slugify }}_{{ forloop.counter }}">
+                                                <i class="fas fa-circle me-1"></i>{{ column.name }}
+                                                <small class="text-muted">({{ column.sql_type }})</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Selecciona las hojas y haz clic en "Cargar Columnas" para ver los campos disponibles.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    No se pudieron cargar las hojas del archivo Excel.
+                    {% if is_cloud %}
+                    <br><small class="mt-2 d-block">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Este archivo está en OneDrive. Verifica que tengas conexión a internet y que el archivo siga disponible.
+                    </small>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if process.source.source_type == 'sql' %}
+        <!-- Configuración SQL -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Configuración SQL Server</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Conexión:</strong> {{ process.source.connection.name }}</p>
+                
+                <div class="mb-3">
+                    <label for="selected_database" class="form-label">Base de Datos:</label>
+                    <select class="form-select" id="selected_database" name="selected_database">
+                        {% for db in available_databases %}
+                        <option value="{{ db }}" {% if db == process.selected_database %}selected{% endif %}>
+                            {{ db }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                {% if available_tables %}
+                <div class="mb-3">
+                    <label class="form-label">Tablas Seleccionadas:</label>
+                    <div class="row">
+                        {% for table in available_tables %}
+                        <div class="col-md-6 mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input table-checkbox" type="checkbox" 
+                                       value="{{ table }}" id="table_{{ forloop.counter }}"
+                                       {% if table in process.selected_tables %}checked{% endif %}>
+                                <label class="form-check-label" for="table_{{ forloop.counter }}">
+                                    <i class="fas fa-table me-1"></i>{{ table }}
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Información de Origen</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Tipo:</strong> {{ process.source.get_source_type_display }}</p>
+                {% if process.source.source_type == 'excel' or process.source.source_type == 'csv' %}
+                    <p><strong>Archivo:</strong> {{ process.source.name }}</p>
+                    <p><strong>Ruta:</strong> <small class="text-muted">{{ process.source.file_path }}</small></p>
+                {% elif process.source.source_type == 'sql' %}
+                    <p><strong>Conexión:</strong> {{ process.source.connection.name }}</p>
+                    <p><strong>Servidor:</strong> {{ process.source.connection.server }}</p>
+                {% endif %}
+                
+                <p><strong>Estado:</strong> 
+                    <span class="badge {% if process.status == 'completed' %}bg-success{% elif process.status == 'failed' %}bg-danger{% elif process.status == 'running' %}bg-warning{% else %}bg-secondary{% endif %}">
+                        {{ process.get_status_display }}
+                    </span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="card">
+            <div class="card-body">
+                <button type="submit" class="btn btn-primary w-100 mb-2">
+                    <i class="fas fa-save me-2"></i>Guardar Cambios
+                </button>
+                <a href="{% url 'automatizacion:view_process' process.id %}" class="btn btn-secondary w-100">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden inputs para enviar datos -->
+    <input type="hidden" name="selected_sheets" id="selected_sheets_hidden">
+    <input type="hidden" name="selected_tables" id="selected_tables_hidden">
+    <input type="hidden" name="selected_columns" id="selected_columns_hidden">
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Inicializar valores
+    updateHiddenFields();
+
+    // Manejar selección de hojas Excel
+    $('.sheet-checkbox').change(function() {
+        updateHiddenFields();
+        // Si se deselecciona una hoja, remover sus columnas del display
+        if (!$(this).is(':checked')) {
+            let sheet = $(this).val();
+            $('.columns-for-sheet[data-sheet="' + sheet + '"]').remove();
+        }
+    });
+
+    // Manejar selección de tablas SQL
+    $('.table-checkbox').change(function() {
+        updateHiddenFields();
+    });
+
+    // Manejar selección de columnas
+    $(document).on('change', '.column-checkbox', function() {
+        updateHiddenFields();
+        
+        // Actualizar estilo del label según esté marcado o no
+        let $label = $(this).siblings('label');
+        if ($(this).is(':checked')) {
+            $label.removeClass('text-muted').addClass('fw-bold text-success');
+            $label.find('i').removeClass('fa-circle').addClass('fa-check-circle');
+        } else {
+            $label.removeClass('fw-bold text-success').addClass('text-muted');
+            $label.find('i').removeClass('fa-check-circle').addClass('fa-circle');
+        }
+    });
+    
+    // ✅ NUEVO: Botón para marcar/desmarcar todos los campos de una hoja
+    $(document).on('click', '.toggle-all-columns', function() {
+        let sheet = $(this).data('sheet');
+        let $checkboxes = $(`.column-checkbox[data-sheet="${sheet}"]`);
+        
+        // Determinar si marcamos o desmarcamos (basado en el primero)
+        let shouldCheck = !$checkboxes.first().is(':checked');
+        
+        $checkboxes.each(function() {
+            $(this).prop('checked', shouldCheck);
+            
+            // Actualizar estilo del label
+            let $label = $(this).siblings('label');
+            if (shouldCheck) {
+                $label.removeClass('text-muted').addClass('fw-bold text-success');
+                $label.find('i').removeClass('fa-circle').addClass('fa-check-circle');
+            } else {
+                $label.removeClass('fw-bold text-success').addClass('text-muted');
+                $label.find('i').removeClass('fa-check-circle').addClass('fa-circle');
+            }
+        });
+        
+        updateHiddenFields();
+    });
+
+    // Botón para cargar columnas
+    $('#loadColumnsBtn').click(function() {
+        let selectedSheets = [];
+        $('.sheet-checkbox:checked').each(function() {
+            selectedSheets.push($(this).val());
+        });
+        
+        if (selectedSheets.length === 0) {
+            alert('Por favor, seleccione al menos una hoja primero.');
+            return;
+        }
+
+        // Mostrar indicador de carga
+        let $btn = $(this);
+        $btn.html('<i class="fas fa-spinner fa-spin me-1"></i>Recargando desde origen...');
+        $btn.prop('disabled', true);
+        
+        // Llamada AJAX para cargar columnas reales
+        $.ajax({
+            url: '{% url "automatizacion:load_process_columns" process.id %}',
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            data: JSON.stringify({
+                'selected_sheets': selectedSheets
+            }),
+            success: function(response) {
+                console.log('📥 Respuesta recibida:', response);
+                if (response.success) {
+                    // Usar sheets_data si está disponible (incluye tipos y preview)
+                    if (response.sheets_data) {
+                        console.log('✅ Cargando datos completos:', response.sheets_data);
+                        loadColumnsWithFullData(response.sheets_data, response.is_cloud);
+                    } else {
+                        console.log('⚠️ Usando fallback con sheets_columns');
+                        // Fallback a la versión simple
+                        loadColumnsForSheets(response.sheets_columns);
+                    }
+                } else {
+                    alert('Error: ' + response.error);
+                }
+            },
+            error: function(xhr) {
+                let errorMsg = 'Error cargando columnas';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMsg += ': ' + xhr.responseJSON.error;
+                }
+                alert(errorMsg);
+            },
+            complete: function() {
+                $btn.html('<i class="fas fa-sync-alt me-1"></i>Recargar Columnas desde Origen');
+                $btn.prop('disabled', false);
+            }
+        });
+    });
+
+    // 🆕 Nueva función que carga columnas CON tipos y preview
+    function loadColumnsWithFullData(sheetsData, isCloud) {
+        console.log('🔄 loadColumnsWithFullData llamada con:', sheetsData);
+        
+        // Limpiar contenedor de columnas
+        let container = $('#columns-container');
+        console.log('📦 Contenedor encontrado:', container.length > 0);
+        container.empty();
+        
+        // Procesar datos completos del servidor
+        Object.keys(sheetsData).forEach(function(sheet) {
+            let sheetInfo = sheetsData[sheet];
+            let columns = sheetInfo.columns || [];
+            let preview = sheetInfo.preview || {};
+            let totalRows = sheetInfo.total_rows || 0;
+            
+            let cloudBadge = isCloud ? '<span class="badge bg-info ms-2"><i class="fab fa-microsoft me-1"></i>OneDrive</span>' : '';
+            
+            let html = `
+                <div class="columns-for-sheet mb-4 p-3 border rounded bg-light" data-sheet="${sheet}">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">
+                            <i class="fas fa-table me-2 text-primary"></i>
+                            <strong>${sheet}</strong>
+                            <span class="badge bg-success ms-2">${columns.length} columnas</span>
+                            <span class="badge bg-secondary ms-1">${totalRows} filas</span>
+                            ${cloudBadge}
+                        </h6>
+                        <button type="button" class="btn btn-sm btn-outline-secondary toggle-all-columns" data-sheet="${sheet}">
+                            <i class="fas fa-check-double me-1"></i>Marcar/Desmarcar todos
+                        </button>
+                    </div>
+            `;
+            
+            if (columns.length > 0) {
+                // Mostrar columnas con checkboxes
+                html += '<div class="row">';
+                columns.forEach(function(col, index) {
+                    let colName = typeof col === 'object' ? col.name : col;
+                    let sqlType = typeof col === 'object' ? (col.sql_type || 'VARCHAR') : 'VARCHAR';
+                    let safeSheetId = sheet.replace(/[^a-zA-Z0-9]/g, '_');
+                    let safeColumnId = colName.replace(/[^a-zA-Z0-9]/g, '_');
+                    
+                    html += `
+                        <div class="col-md-4 mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input column-checkbox" 
+                                       type="checkbox" checked
+                                       data-sheet="${sheet}" 
+                                       value="${colName}"
+                                       id="col_${safeSheetId}_${safeColumnId}_${index}">
+                                <label class="form-check-label fw-bold text-success" for="col_${safeSheetId}_${safeColumnId}_${index}">
+                                    <i class="fas fa-check-circle me-1"></i>${colName}
+                                    <small class="text-muted">(${sqlType})</small>
+                                </label>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                
+                // Mostrar preview de datos si está disponible
+                if (preview && preview.data && preview.data.length > 0) {
+                    html += `
+                        <div class="mt-3">
+                            <h6 class="text-muted"><i class="fas fa-eye me-1"></i>Vista previa (primeras ${preview.data.length} filas):</h6>
+                            <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                                <table class="table table-sm table-striped table-bordered">
+                                    <thead class="table-dark">
+                                        <tr>
+                    `;
+                    
+                    // Headers
+                    columns.forEach(function(col) {
+                        let colName = typeof col === 'object' ? col.name : col;
+                        html += `<th style="font-size: 0.8rem;">${colName}</th>`;
+                    });
+                    html += '</tr></thead><tbody>';
+                    
+                    // Filas de datos
+                    preview.data.forEach(function(row) {
+                        html += '<tr>';
+                        columns.forEach(function(col) {
+                            let colName = typeof col === 'object' ? col.name : col;
+                            let value = row[colName] !== undefined ? row[colName] : '';
+                            if (value === null) value = '<span class="text-muted">NULL</span>';
+                            html += `<td style="font-size: 0.75rem; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${value}</td>`;
+                        });
+                        html += '</tr>';
+                    });
+                    
+                    html += '</tbody></table></div></div>';
+                }
+            } else {
+                html += `
+                    <div class="alert alert-warning mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        No se encontraron columnas para la hoja "${sheet}".
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            container.append(html);
+            console.log(`✅ Hoja '${sheet}' agregada con ${columns.length} columnas`);
+        });
+        
+        updateHiddenFields();
+        
+        // Mostrar mensaje de éxito
+        let sourceType = isCloud ? 'OneDrive' : 'archivo local';
+        showTemporaryAlert(`✅ Datos actualizados desde ${sourceType}`, 'success');
+        console.log('🎉 Actualización completada');
+    }
+    
+    // Función para mostrar alertas temporales
+    function showTemporaryAlert(message, type) {
+        let alertHtml = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        $('body').append(alertHtml);
+        setTimeout(function() {
+            $('.alert-dismissible').fadeOut('slow', function() { $(this).remove(); });
+        }, 3000);
+    }
+
+    function loadColumnsForSheets(sheetsColumns) {
+        // Limpiar contenedor de columnas
+        $('#columns-container').empty();
+        
+        // Procesar datos reales del servidor
+        Object.keys(sheetsColumns).forEach(function(sheet) {
+            let columns = sheetsColumns[sheet];
+            
+            if ($('.columns-for-sheet[data-sheet="' + sheet + '"]').length === 0) {
+                let html = `
+                    <div class="columns-for-sheet mb-3 p-3 border rounded" data-sheet="${sheet}">
+                        <h7><strong><i class="fas fa-table me-1"></i>${sheet}</strong></h7>
+                        <div class="row mt-2">
+                `;
+                
+                if (columns.length > 0) {
+                    columns.forEach(function(column, index) {
+                        let safeSheetId = sheet.replace(/[^a-zA-Z0-9]/g, '_');
+                        let safeColumnId = column.replace(/[^a-zA-Z0-9]/g, '_');
+                        html += `
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input column-checkbox" 
+                                           type="checkbox" checked
+                                           data-sheet="${sheet}" 
+                                           value="${column}"
+                                           id="col_${safeSheetId}_${safeColumnId}_${index}">
+                                    <label class="form-check-label" for="col_${safeSheetId}_${safeColumnId}_${index}">
+                                        <i class="fas fa-columns me-1"></i>${column}
+                                    </label>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += `
+                        <div class="col-12">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                No se encontraron columnas para la hoja "${sheet}".
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                html += '</div></div>';
+                $('#columns-container').append(html);
+            }
+        });
+        
+        updateHiddenFields();
+    }
+
+    function updateHiddenFields() {
+        // Actualizar hojas seleccionadas
+        let selectedSheets = [];
+        $('.sheet-checkbox:checked').each(function() {
+            selectedSheets.push($(this).val());
+        });
+        $('#selected_sheets_hidden').val(JSON.stringify(selectedSheets));
+
+        // Actualizar tablas seleccionadas
+        let selectedTables = [];
+        $('.table-checkbox:checked').each(function() {
+            selectedTables.push($(this).val());
+        });
+        $('#selected_tables_hidden').val(JSON.stringify(selectedTables));
+
+        // Actualizar columnas seleccionadas
+        let selectedColumns = {};
+        $('.column-checkbox:checked').each(function() {
+            let sheet = $(this).data('sheet');
+            let column = $(this).val();
+            
+            if (!selectedColumns[sheet]) {
+                selectedColumns[sheet] = [];
+            }
+            selectedColumns[sheet].push(column);
+        });
+        $('#selected_columns_hidden').val(JSON.stringify(selectedColumns));
+    }
+
+    // Mostrar/ocultar secciones según el tipo
+    {% if process.source.source_type == 'excel' %}
+        $('#columns-section').show();
+    {% endif %}
+});
+</script>
+{% endblock %}

@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}Detalles de Conexión SQL - Sistema de Migración de Datos{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'automatizacion:index' %}">Inicio</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'automatizacion:list_connections' %}">Conexiones</a></li>
+                <li class="breadcrumb-item active">{{ connection.name }}</li>
+            </ol>
+        </nav>
+        
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-database me-2"></i>{{ connection.name }}</h2>
+            <div>
+                <a href="{% url 'automatizacion:list_sql_databases' connection.id %}" class="btn btn-primary">
+                    <i class="fas fa-table me-2"></i>Explorar Bases de Datos
+                </a>
+                <a href="#" class="btn btn-outline-danger ms-2" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                    <i class="fas fa-trash me-2"></i>Eliminar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Información de Conexión</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Servidor:</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" value="{{ connection.server }}" readonly>
+                        <button class="btn btn-outline-secondary copy-btn" type="button" data-value="{{ connection.server }}">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Puerto:</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" value="{{ connection.port }}" readonly>
+                        <button class="btn btn-outline-secondary copy-btn" type="button" data-value="{{ connection.port }}">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Usuario:</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" value="{{ connection.username }}" readonly>
+                        <button class="btn btn-outline-secondary copy-btn" type="button" data-value="{{ connection.username }}">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Base de datos seleccionada:</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" value="{{ connection.selected_database|default:'Ninguna' }}" readonly>
+                        {% if connection.selected_database %}
+                        <button class="btn btn-outline-secondary copy-btn" type="button" data-value="{{ connection.selected_database }}">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Fecha de creación:</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" value="{{ connection.created_at|date:'d/m/Y H:i' }}" readonly>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Último uso:</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" value="{{ connection.last_used|date:'d/m/Y H:i'|default:'Nunca' }}" readonly>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Bases de Datos Disponibles</h5>
+            </div>
+            <div class="card-body">
+                {% if connection.available_databases %}
+                    <div class="list-group">
+                        {% for db in connection.available_databases %}
+                            <a href="{% url 'automatizacion:select_database' connection.id %}?selected_database={{ db }}" 
+                                class="list-group-item list-group-item-action {% if connection.selected_database == db %}active{% endif %}">
+                                <div class="d-flex w-100 justify-content-between align-items-center">
+                                    <h6 class="mb-1">{{ db }}</h6>
+                                    {% if connection.selected_database == db %}
+                                        <span class="badge bg-info">Seleccionada</span>
+                                    {% endif %}
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        No hay bases de datos disponibles o no se ha realizado una conexión exitosa.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Procesos Relacionados</h5>
+                <span class="badge bg-primary">{{ process_count }}</span>
+            </div>
+            <div class="card-body">
+                {% if related_processes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Nombre del Proceso</th>
+                                    <th>Tipo</th>
+                                    <th>Estado</th>
+                                    <th>Creado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for process in related_processes %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'automatizacion:view_process' process.id %}" class="text-decoration-none">
+                                            <i class="fas fa-cog me-1"></i>{{ process.name }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if process.source.source_type == 'sql' %}
+                                            <span class="badge bg-info">
+                                                <i class="fas fa-database me-1"></i>SQL
+                                            </span>
+                                        {% elif process.source.source_type == 'excel' %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-file-excel me-1"></i>Excel
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">
+                                                <i class="fas fa-file me-1"></i>{{ process.source.source_type|upper }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if process.status == 'configured' %}
+                                            <span class="badge bg-secondary">Configurado</span>
+                                        {% elif process.status == 'running' %}
+                                            <span class="badge bg-primary">Ejecutando</span>
+                                        {% elif process.status == 'completed' %}
+                                            <span class="badge bg-success">Completado</span>
+                                        {% elif process.status == 'failed' %}
+                                            <span class="badge bg-danger">Fallido</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ process.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock me-1"></i>
+                                            {{ process.created_at|date:"d/m/Y H:i" }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{% url 'automatizacion:view_process' process.id %}" 
+                                               class="btn btn-outline-primary" 
+                                               title="Ver detalles">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{% url 'automatizacion:run_process' process.id %}" 
+                                               class="btn btn-outline-success" 
+                                               title="Ejecutar proceso">
+                                                <i class="fas fa-play"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No hay procesos configurados para esta conexión.
+                        <br>
+                        <small class="text-muted">
+                            Los procesos aparecerán aquí cuando selecciones tablas/archivos y configures la migración.
+                        </small>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación para eliminar -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirmar eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro de que desea eliminar la conexión <strong>{{ connection.name }}</strong>?</p>
+                <p class="text-danger">Esta acción no se puede deshacer y podría afectar a procesos que dependan de esta conexión.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <a href="{% url 'automatizacion:delete_connection' connection.id %}" class="btn btn-danger">Eliminar</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Funcionalidad de copiar al portapapeles
+        $('.copy-btn').click(function() {
+            var valueToCopy = $(this).data('value');
+            navigator.clipboard.writeText(valueToCopy).then(function() {
+                // Cambiar el ícono por un check temporalmente
+                var btn = $(this);
+                var originalHtml = btn.html();
+                btn.html('<i class="fas fa-check"></i>');
+                setTimeout(function() {
+                    btn.html(originalHtml);
+                }, 2000);
+            }.bind(this));
+        });
+    });
+</script>
+{% endblock %}

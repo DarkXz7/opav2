@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+{% load static %}
+
+{% block title %}Selección de Columnas - Sistema de Migración de Datos{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'automatizacion/styles/list_columns.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'automatizacion:index' %}">Inicio</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'automatizacion:new_process' %}">Nuevo Proceso</a></li>
+                {% if source.source_type == 'excel' %}
+                <li class="breadcrumb-item"><a href="{% url 'automatizacion:upload_excel' %}">Cargar Archivo</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'automatizacion:list_excel_sheets' source.id %}">Seleccionar Hojas</a></li>
+                {% else %}
+                <li class="breadcrumb-item"><a href="{% url 'automatizacion:connect_sql' %}">Conectar a SQL</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'automatizacion:list_sql_tables' source.connection.id %}">Seleccionar Tablas</a></li>
+                {% endif %}
+                <li class="breadcrumb-item active">Seleccionar Columnas</li>
+            </ol>
+        </nav>
+        
+        <h2 class="mb-4">
+            <i class="fas fa-columns me-2"></i>
+            {% if source.source_type == 'excel' %}
+                Seleccionar Columnas de {{ sheet_name }}
+            {% else %}
+                Seleccionar Columnas de {{ table_name }}
+            {% endif %}
+        </h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="steps">
+                    <div class="step complete">
+                        <div class="step-icon"><i class="fas fa-check"></i></div>
+                        <div class="step-label">
+                            {% if source.source_type == 'excel' or source.source_type == 'csv' %}
+                                Cargar archivo
+                            {% else %}
+                                Conexión
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="step complete">
+                        <div class="step-icon"><i class="fas fa-check"></i></div>
+                        <div class="step-label">
+                            {% if source.source_type == 'excel' %}
+                                Seleccionar hojas
+                            {% elif source.source_type == 'csv' %}
+                                CSV cargado
+                            {% else %}
+                                Seleccionar tablas
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="step active">
+                        <div class="step-icon">3</div>
+                        <div class="step-label">Seleccionar columnas</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-icon">4</div>
+                        <div class="step-label">Guardar proceso</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info mb-4">
+                    <strong>
+                        {% if source.source_type == 'excel' %}
+                            Archivo:
+                        {% elif source.source_type == 'csv' %}
+                            Archivo:
+                        {% else %}
+                            Tabla:
+                        {% endif %}
+                    </strong>
+                    {% if source.source_type == 'excel' or source.source_type == 'csv' %}
+                        {{ source.name }} &gt; {{ sheet_name }}
+                    {% else %}
+                        {{ full_table_name }}
+                    {% endif %}
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <h4 class="mb-3">Vista previa de datos</h4>
+                        <div class="table-preview mb-4">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            {% for column in preview.columns %}
+                                                <th>{{ column }}</th>
+                                            {% endfor %}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for row in preview.data %}
+                                            <tr>
+                                                {% for column in preview.columns %}
+                                                    <td>{{ row|get_item:column }}</td>
+                                                {% endfor %}
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="text-muted text-center mt-2">
+                                <small>Mostrando {{ preview.data|length }} de {{ preview.total_rows }} filas totales</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <form id="columnSelectionForm">
+                    <input type="hidden" id="sourceId" value="{{ source.id }}">
+                    <input type="hidden" id="sheetName" value="{{ sheet_name }}">
+                    {% if process_id %}
+                        <input type="hidden" id="processId" value="{{ process_id }}">
+                    {% endif %}
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h4 class="mb-3">Selección de columnas</h4>
+                            <p>Selecciona las columnas que deseas importar:</p>
+                            
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="selectAllColumns" checked>
+                                    <label class="form-check-label" for="selectAllColumns">
+                                        Seleccionar/Deseleccionar todas
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-hover table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 5%">#</th>
+                                            <th>Nombre de columna</th>
+                                            <th style="width: 25%">Tipo de datos</th>
+                                            <th style="width: 15%">Incluir</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for column in columns %}
+                                            <tr>
+                                                <td>{{ forloop.counter }}</td>
+                                                <td>{{ column.name }}</td>
+                                                <td>
+                                                    <span class="badge bg-secondary">{{ column.type }}</span>
+                                                </td>
+                                                <td>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input column-checkbox" type="checkbox" 
+                                                               id="column{{ forloop.counter }}" 
+                                                               name="columns" 
+                                                               value="{{ column.name }}" 
+                                                               checked>
+                                                        <label class="form-check-label" for="column{{ forloop.counter }}"></label>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        {% if source.source_type == 'excel' %}
+                            <a href="{% url 'automatizacion:list_excel_sheets' source.id %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Atrás
+                            </a>
+                        {% else %}
+                            <a href="{% url 'automatizacion:list_sql_tables' source.connection.id %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Atrás
+                            </a>
+                        {% endif %}
+                        <button type="button" id="continueButton" class="btn btn-primary">
+                            Continuar<i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para nombre del proceso -->
+<div class="modal fade" id="processNameModal" tabindex="-1" aria-labelledby="processNameModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="processNameModalLabel">Guardar Proceso</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="processName" class="form-label">Nombre del proceso</label>
+                    <input type="text" class="form-control" id="processName" placeholder="Mi proceso de importación">
+                </div>
+                <div class="mb-3">
+                    <label for="processDescription" class="form-label">Descripción (opcional)</label>
+                    <textarea class="form-control" id="processDescription" rows="3"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="targetDb" class="form-label">Base de datos destino</label>
+                    <input type="text" class="form-control" id="targetDb" value="DestinoAutomatizacion" readonly>
+                    <div class="form-text">Base de datos donde se importarán los datos (fijo).</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="saveProcessButton" class="btn btn-primary">Guardar Proceso</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Seleccionar/deseleccionar todas las columnas
+        $('#selectAllColumns').change(function() {
+            $('.column-checkbox').prop('checked', $(this).prop('checked'));
+        });
+        
+        // Actualizar estado de "Seleccionar todas" cuando se cambian selecciones individuales
+        $('.column-checkbox').change(function() {
+            if ($('.column-checkbox:checked').length == $('.column-checkbox').length) {
+                $('#selectAllColumns').prop('checked', true);
+            } else {
+                $('#selectAllColumns').prop('checked', false);
+            }
+        });
+        
+        // Botón continuar
+        $('#continueButton').click(function() {
+            if ($('.column-checkbox:checked').length === 0) {
+                alert('Por favor selecciona al menos una columna.');
+                return;
+            }
+            
+            const processId = $('#processId').val();
+            if (processId) {
+                // Ya existe un proceso, actualizar selección de columnas
+                updateColumnSelection(processId);
+            } else {
+                // Mostrar modal para crear nuevo proceso
+                $('#processNameModal').modal('show');
+            }
+        });
+        
+        // Guardar proceso
+        $('#saveProcessButton').click(function() {
+            const processName = $('#processName').val().trim();
+            if (!processName) {
+                alert('Por favor ingrese un nombre para el proceso');
+                return;
+            }
+            
+            // Recopilar columnas seleccionadas
+            const selectedColumns = [];
+            $('.column-checkbox:checked').each(function() {
+                selectedColumns.push($(this).val());
+            });
+            
+            // Datos del proceso
+            let selectedData = {};
+            {% if source.source_type == 'excel' %}
+                selectedData = {
+                    selected_sheets: [$("#sheetName").val()],
+                    selected_columns: {
+                        [$("#sheetName").val()]: selectedColumns
+                    }
+                };
+            {% elif source.source_type == 'csv' %}
+                selectedData = {
+                    selected_sheets: ["csv_data"],
+                    selected_columns: {
+                        "csv_data": selectedColumns
+                    }
+                };
+            {% else %} /* SQL */
+                selectedData = {
+                    selected_tables: ["{{ full_table_name }}"],
+                    selected_columns: {
+                        "{{ full_table_name }}": selectedColumns
+                    }
+                };
+            {% endif %}
+            
+            const processData = {
+                name: processName,
+                description: $('#processDescription').val(),
+                source_id: $('#sourceId').val(),
+                target_db: $('#targetDb').val(),
+                ...selectedData
+            };
+            
+            // Enviar datos al servidor
+            $.ajax({
+                url: '{% url "automatizacion:save_process" %}',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(processData),
+                success: function(response) {
+                    if (response.success) {
+                        // Redirigir a la página de detalle del proceso
+                        window.location.href = '{% url "automatizacion:view_process" 999 %}'.replace('999', response.process_id);
+                    } else {
+                        alert('Error al guardar el proceso: ' + response.error);
+                    }
+                },
+                error: function() {
+                    alert('Error al comunicarse con el servidor.');
+                }
+            });
+        });
+        
+        function updateColumnSelection(processId) {
+            // Recopilar columnas seleccionadas
+            const selectedColumns = [];
+            $('.column-checkbox:checked').each(function() {
+                selectedColumns.push($(this).val());
+            });
+            
+            // Datos para actualizar
+            let updateData = {
+                process_id: processId,
+            };
+            
+            {% if source.source_type == 'excel' or source.source_type == 'csv' %}
+                updateData.selected_columns = {
+                    [$("#sheetName").val()]: selectedColumns
+                };
+            {% else %} /* SQL */
+                updateData.selected_columns = {
+                    "{{ full_table_name }}": selectedColumns
+                };
+            {% endif %}
+            
+            // Enviar datos al servidor
+            $.ajax({
+                url: '{% url "automatizacion:save_process" %}',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(updateData),
+                success: function(response) {
+                    if (response.success) {
+                        // Redirigir a la página de detalle del proceso
+                        window.location.href = '{% url "automatizacion:view_process" 999 %}'.replace('999', processId);
+                    } else {
+                        alert('Error al actualizar el proceso: ' + response.error);
+                    }
+                },
+                error: function() {
+                    alert('Error al comunicarse con el servidor.');
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

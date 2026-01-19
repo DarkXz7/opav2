@@ -1,0 +1,430 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+{% load static %}
+
+{% block title %}Detalles del Proceso - Sistema de Migración de Datos{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'automatizacion/styles/view_process.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'automatizacion:index' %}">Inicio</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'automatizacion:list_processes' %}">Procesos</a></li>
+                <li class="breadcrumb-item active">{{ process.name }}</li>
+            </ol>
+        </nav>
+        
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-tasks me-2"></i>{{ process.name }}</h2>
+            <div>
+                <a href="{% url 'automatizacion:run_process' process.id %}" class="btn btn-success">
+                    <i class="fas fa-play me-2"></i>Ejecutar Proceso
+                </a>
+                <a href="{% url 'automatizacion:edit_process' process.id %}" class="btn btn-outline-primary ms-2">
+                    <i class="fas fa-edit me-2"></i>Editar
+                </a>
+                <a href="{% url 'automatizacion:delete_process' process.id %}" class="btn btn-outline-danger ms-2">
+                    <i class="fas fa-trash me-2"></i>Eliminar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Información General</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Creado:</strong> {{ process.created_at|date:"d/m/Y H:i" }}</p>
+                <p><strong>Última ejecución:</strong> 
+                    {% if process.last_run %}
+                        {{ process.last_run|date:"d/m/Y H:i" }}
+                    {% else %}
+                        Nunca
+                    {% endif %}
+                </p>
+                <p><strong>Estado:</strong> 
+                    <span class="badge {% if process.status == 'completed' %}bg-success{% elif process.status == 'failed' %}bg-danger{% elif process.status == 'running' %}bg-warning{% else %}bg-secondary{% endif %}">
+                        {{ process.get_status_display }}
+                    </span>
+                </p>
+                <p><strong>Tipo de origen:</strong> {{ process.source.get_source_type_display }}</p>
+                <p><strong>Base de datos destino:</strong> 
+                    {% if process.target_db_connection %}
+                        {{ process.target_db_connection.selected_database|default:process.target_db_name }}
+                    {% elif process.target_db_name == 'default' %}
+                        DestinoAutomatizacion
+                    {% else %}
+                        {{ process.target_db_name }}
+                    {% endif %}
+                </p>
+                {% if process.description %}
+                    <div class="mt-3">
+                        <h6>Descripción:</h6>
+                        <p class="text-muted">{{ process.description }}</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Origen de Datos</h5>
+            </div>
+            <div class="card-body">
+                {% if process.source.source_type == 'excel' or process.source.source_type == 'csv' %}
+                    <p><strong>Archivo:</strong> {{ process.source.name }}</p>
+                    {% if process.selected_sheets %}
+                        <p><strong>Hojas seleccionadas:</strong> 
+                            <span class="badge bg-primary">{{ process.selected_sheets|length }} hoja{{ process.selected_sheets|length|pluralize }}</span>
+                        </p>
+                        <div class="mt-2">
+                            {% for sheet in process.selected_sheets %}
+                                <span class="badge bg-success me-1 mb-1">
+                                    <i class="fas fa-table me-1"></i>{{ sheet }}
+                                    {% if process.selected_columns and process.selected_columns|get_item:sheet %}
+                                        ({{ process.selected_columns|get_item:sheet|length }} col{{ process.selected_columns|get_item:sheet|length|pluralize }})
+                                    {% endif %}
+                                </span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <p><strong>Conexión:</strong> {{ connection.name }}</p>
+                    <p><strong>Servidor:</strong> {{ connection.server }}</p>
+                    <p><strong>Base de datos:</strong> {{ process.source.connection.selected_database|default:"No especificada" }}</p>
+                    {% if process.selected_tables %}
+                        <p><strong>Tablas seleccionadas:</strong></p>
+                        <ul>
+                            {% for table in process.selected_tables %}
+                                <li>{{ table }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    {% if process.source.source_type == 'excel' %}
+                        <i class="fas fa-table me-2"></i>Configuración de Hojas
+                    {% else %}
+                        <i class="fas fa-columns me-2"></i>Configuración de Columnas
+                    {% endif %}
+                </h5>
+                {% if process.selected_columns %}
+                    <div>
+                        <span class="badge bg-info">
+                            {{ process.selected_columns.items|length }} 
+                            {% if process.source.source_type == 'excel' %}hoja{% else %}tabla{% endif %}{{ process.selected_columns.items|length|pluralize }}
+                        </span>
+                        <span class="badge bg-success">
+                            {% with total_columns=0 %}
+                                {% for item_name, columns in process.selected_columns.items %}
+                                    {% with total_columns=total_columns|add:columns|length %}{% endwith %}
+                                {% endfor %}
+                            {% endwith %}
+                            Total: 
+                            {% for item_name, columns in process.selected_columns.items %}
+                                {% if forloop.first %}{{ columns|length }}{% else %}+{{ columns|length }}{% endif %}
+                            {% endfor %} columnas
+                        </span>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if process.selected_columns %}
+                    <!-- Vista resumen rápida -->
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">
+                            <i class="fas fa-list-ul me-1"></i>Resumen rápido
+                        </h6>
+                        <div class="row">
+                            {% for item_name, columns in process.selected_columns.items %}
+                                <div class="col-md-6 mb-2">
+                                    <div class="d-flex justify-content-between align-items-center p-2 border rounded">
+                                        <span class="fw-bold">
+                                            <i class="fas fa-{% if process.source.source_type == 'excel' %}file-excel{% else %}database{% endif %} text-success me-1"></i>
+                                            {{ item_name }}
+                                        </span>
+                                        <span class="badge bg-primary">{{ columns|length }} col{{ columns|length|pluralize }}</span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Tablas que se crearán -->
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">
+                            <i class="fas fa-arrow-right me-1"></i>Tablas que se crearán en {{ process.target_db_name|default:"DestinoAutomatizacion" }}
+                        </h6>
+                        <div class="alert alert-info">
+                            {% for item_name, columns in process.selected_columns.items %}
+                                <div class="mb-1">
+                                    <code>{{ process.name|slugify }}_{{ item_name|slugify }}</code>
+                                    <small class="text-muted">({{ columns|length }} columnas)</small>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Detalle de columnas - SISTEMA PERSONALIZADO DE COLAPSO -->
+                    <div>
+                        {% for item_name, columns in process.selected_columns.items %}
+                            {% get_mapped_columns columns item_name process.column_mappings as mapped_columns %}
+                            <div class="card mb-3" data-section="{{ forloop.counter }}">
+                                <div class="card-header bg-light">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="fas fa-{% if process.source.source_type == 'excel' %}file-excel{% else %}database{% endif %} me-2 text-primary"></i>
+                                            <strong>{{ item_name }}</strong>
+                                        </div>
+                                        <div>
+                                            <span class="badge bg-primary me-2">{{ mapped_columns|length }} columnas</span>
+                                            <button class="btn btn-sm btn-outline-primary toggle-details" type="button" 
+                                                    data-section="{{ forloop.counter }}">
+                                                <i class="fas fa-chevron-down me-1"></i><span class="toggle-text">Ver columnas</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Contenido del colapso - SIMPLE DIV -->
+                                <div class="card-details" id="section-details-{{ forloop.counter }}" style="display: none;">
+                                    <div class="card-body bg-white">
+                                        
+                                        <!-- SOLO MOSTRAR LAS COLUMNAS - SIMPLE Y CLARO -->
+                                        <h6 class="mb-3">Columnas seleccionadas:</h6>
+                                        <div class="row">
+                                            {% for column in mapped_columns %}
+                                                {% get_sample_values sample_data item_name forloop.counter0 as column_values %}
+                                                <div class="col-md-4 col-lg-3 mb-2">
+                                                    <div class="p-2 border rounded bg-light text-center column-preview" 
+                                                         data-bs-toggle="tooltip" 
+                                                         data-bs-placement="top"
+                                                         title="{% if column_values %}Datos: {{ column_values|join:', ' }}{% else %}Sin datos de preview{% endif %}">
+                                                        <i class="fas fa-tag text-primary me-1"></i>
+                                                        <small class="cursor-pointer">{{ column }}</small>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                        
+                                        <!-- Información básica -->
+                                        <hr class="my-3">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <small class="text-muted">
+                                                    <strong>Origen:</strong> 
+                                                    {% if process.source.source_type == 'excel' %}
+                                                        {{ process.source.name }} → {{ item_name }}
+                                                    {% else %}
+                                                        {{ process.source.connection.server }} → {{ item_name }}
+                                                    {% endif %}
+                                                </small>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <small class="text-muted">
+                                                    <strong>Destino:</strong> {{ process.target_db_name|default:"DestinoAutomatizacion" }} → {{ process.name|slugify }}_{{ item_name|slugify }}
+                                                </small>
+                                            </div>
+                                        </div>
+                                        
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        No hay 
+                        {% if process.source.source_type == 'excel' %}
+                            hojas ni columnas
+                        {% else %}
+                            columnas
+                        {% endif %}
+                        seleccionadas.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Historial de Ejecuciones</h5>
+            </div>
+            <div class="card-body">
+                {% if logs %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    {% if is_sql_process %}
+                                        <th>Estado</th>
+                                        <th>Duración</th>
+                                        <th>Proceso ID</th>
+                                    {% else %}
+                                        <th>Etapa</th>
+                                        <th>Mensaje</th>
+                                        <th>Filas</th>
+                                        <th>Duración</th>
+                                    {% endif %}
+                                    <th>Nivel</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in logs %}
+                                    <tr>
+                                        {% if is_sql_process %}
+                                            {# Logs de ProcesoLog (SQL Server) #}
+                                            <td>{{ log.FechaEjecucion|date:"d/m/Y H:i:s" }}</td>
+                                            <td>
+                                                <span class="badge {% if 'Completado' in log.Estado %}bg-success{% elif 'Error' in log.Estado %}bg-danger{% elif 'Iniciando' in log.Estado or 'Iniciado' in log.Estado %}bg-info{% else %}bg-secondary{% endif %}">
+                                                    {{ log.Estado }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if log.DuracionSegundos %}
+                                                    {{ log.DuracionSegundos }}s
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <code class="small">{{ log.ProcesoID|slice:":8" }}...</code>
+                                            </td>
+                                            <td>
+                                                {% if 'Error' in log.Estado %}
+                                                    <span class="badge bg-danger">Error</span>
+                                                    {% if log.MensajeError %}
+                                                        <button class="btn btn-sm btn-outline-danger ms-2" 
+                                                                data-bs-toggle="tooltip" 
+                                                                title="{{ log.MensajeError }}">
+                                                            <i class="fas fa-exclamation-circle"></i>
+                                                        </button>
+                                                    {% endif %}
+                                                {% elif 'Completado' in log.Estado %}
+                                                    <span class="badge bg-success">Éxito</span>
+                                                    {% if log.MensajeError %}
+                                                        <button class="btn btn-sm btn-outline-info ms-2" 
+                                                                data-bs-toggle="tooltip" 
+                                                                title="{{ log.MensajeError }}">
+                                                            <i class="fas fa-info-circle"></i>
+                                                        </button>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="badge bg-info">En Proceso</span>
+                                                {% endif %}
+                                            </td>
+                                        {% else %}
+                                            {# Logs de MigrationLog (Excel/CSV) #}
+                                            <td>{{ log.timestamp|date:"d/m/Y H:i:s" }}</td>
+                                            <td>
+                                                <span class="badge bg-secondary">{{ log.get_stage_display }}</span>
+                                            </td>
+                                            <td>{{ log.message|truncatechars:50 }}</td>
+                                            <td>{{ log.rows_processed|default:"0" }}</td>
+                                            <td>
+                                                {% if log.duration_ms %}
+                                                    {{ log.duration_ms }}ms
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge {% if log.level == 'success' %}bg-success{% elif log.level == 'error' or log.level == 'critical' %}bg-danger{% elif log.level == 'warning' %}bg-warning{% else %}bg-info{% endif %}">
+                                                    {{ log.get_level_display }}
+                                                </span>
+                                                {% if log.error_message %}
+                                                    <button class="btn btn-sm btn-outline-danger ms-2" 
+                                                            data-bs-toggle="tooltip" 
+                                                            title="{{ log.error_message }}">
+                                                        <i class="fas fa-exclamation-circle"></i>
+                                                    </button>
+                                                {% endif %}
+                                            </td>
+                                        {% endif %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info mb-0">
+                        Este proceso no se ha ejecutado aún.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Inicializar tooltips dinámicamente
+        function initializeTooltips() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                new bootstrap.Tooltip(tooltipTriggerEl, {
+                    html: false,
+                    delay: { show: 100, hide: 100 }
+                })
+            })
+        }
+        
+        // Inicializar al cargar
+        initializeTooltips();
+        
+        // ⭐ SISTEMA PERSONALIZADO DE COLAPSO - SIN BOOTSTRAP COLLAPSE
+        $('.toggle-details').on('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            var sectionNum = $(this).data('section');
+            var $details = $('#section-details-' + sectionNum);
+            var $icon = $(this).find('i');
+            var $text = $(this).find('.toggle-text');
+            
+            // Toggle display
+            if ($details.is(':visible')) {
+                // Cerrar
+                $details.slideUp(200);
+                $icon.removeClass('fa-chevron-up').addClass('fa-chevron-down');
+                $text.text('Ver columnas');
+            } else {
+                // Abrir
+                $details.slideDown(200, function() {
+                    $(this).css('display', 'block'); // Asegurar display block
+                    // Reinicializar tooltips después de que el contenido sea visible
+                    initializeTooltips();
+                });
+                $icon.removeClass('fa-chevron-down').addClass('fa-chevron-up');
+                $text.text('Ocultar');
+            }
+        });
+        
+        // Log simple de información del proceso
+        console.log('📋 Proceso:', '{{ process.name|escapejs }}', '(ID: {{ process.id }})');
+        {% if process.selected_columns %}
+            console.log('📊 Columnas por sección:', {{ process.selected_columns|safe }});
+        {% endif %}
+    });
+</script>
+{% endblock %}

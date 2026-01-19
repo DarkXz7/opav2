@@ -1,0 +1,425 @@
+{% extends "base.html" %}
+{% load static %}
+
+<!-- TEMPLATE ACTUALIZADO - VERSION 4.0 - FORZANDO CAMBIOS -->
+
+{% block title %}Cargar Archivo - Sistema de Automatización{% endblock %}
+
+{% block page_title %}
+    <i class="pe-7s-cloud-upload text-primary me-2"></i>
+    {% if request.GET.type == 'csv' %}
+        Cargar Archivo CSV
+    {% else %}
+        Cargar Archivo Excel
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+
+<!-- !!!! HEADER COMPLETAMENTE NUEVO !!!! -->
+<div class="container-fluid mb-4" style="background: white; padding: 20px; border-bottom: 2px solid #dee2e6;">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <div class="d-flex align-items-center">
+                <div style="width: 50px; height: 50px; background: #f1f3f4; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                    <i class="pe-7s-cloud-upload" style="font-size: 1.5rem; color: #1976d2;"></i>
+                </div>
+                <div>
+                    <h2 style="margin: 0; color: #333; font-weight: 600; font-size: 1.8rem;">CARGA DE ARCHIVOS</h2>
+                    <p style="margin: 0; color: #666; font-size: 0.9rem;">
+                        {% if request.GET.type == 'csv' %}
+                            Sistema de procesamiento de archivos CSV
+                        {% else %}
+                            Sistema de procesamiento de archivos Excel
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 text-end">
+            <nav style="background: #f8f9fa; padding: 8px 12px; border-radius: 5px; display: inline-block;">
+                <a href="{% url 'automatizacion:index' %}" style="color: #666; text-decoration: none; margin-right: 8px;">Inicio</a> › 
+                <a href="{% url 'automatizacion:new_process' %}" style="color: #666; text-decoration: none; margin: 0 8px;">Nuevo Proceso</a> › 
+                <span style="color: #999;">Cargar Archivo</span>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<div class="main-card mb-3 card border-0" style="box-shadow: 0 2px 8px rgba(0,0,0,0.1);"">
+    
+    <div class="card-body">
+        <!-- Steps Progress -->
+        <div class="steps-wizard mb-4">
+            <div class="steps-indicator">
+                <div class="step-item active">
+                    <div class="step-marker bg-primary text-white">
+                        <i class="pe-7s-upload"></i>
+                    </div>
+                    <div class="step-details">
+                        <p class="step-title">Cargar Archivo</p>
+                        <p class="step-description text-muted">Seleccionar archivo desde tu ordenador</p>
+                    </div>
+                </div>
+                
+                <div class="step-item">
+                    <div class="step-marker bg-light text-muted">
+                        <i class="pe-7s-note2"></i>
+                    </div>
+                    <div class="step-details">
+                        <p class="step-title text-muted">
+                            {% if request.GET.type == 'csv' %}
+                                Configurar Columnas
+                            {% else %}
+                                Seleccionar Hojas
+                            {% endif %}
+                        </p>
+                        <p class="step-description text-muted">Elegir qué datos procesar</p>
+                    </div>
+                </div>
+                
+                <div class="step-item">
+                    <div class="step-marker bg-light text-muted">
+                        <i class="pe-7s-config"></i>
+                    </div>
+                    <div class="step-details">
+                        <p class="step-title text-muted">Configurar</p>
+                        <p class="step-description text-muted">Mapear columnas y tipos</p>
+                    </div>
+                </div>
+                
+                <div class="step-item">
+                    <div class="step-marker bg-light text-muted">
+                        <i class="pe-7s-diskette"></i>
+                    </div>
+                    <div class="step-details">
+                        <p class="step-title text-muted">Guardar</p>
+                        <p class="step-description text-muted">Completar proceso</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Upload Form -->
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="upload-zone p-4">
+                    <form action="{% url 'automatizacion:upload_excel' %}" method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- File Type Icon -->
+                        <div class="text-center mb-4">
+                            <div class="file-type-icon mb-3">
+                                {% if request.GET.type == 'csv' %}
+                                    <i class="fas fa-file-csv text-warning" style="font-size: 4rem;"></i>
+                                {% else %}
+                                    <i class="fas fa-file-excel text-success" style="font-size: 4rem;"></i>
+                                {% endif %}
+                            </div>
+                            <h4 class="text-primary mb-2">
+                                {% if request.GET.type == 'csv' %}
+                                    Subir Archivo CSV
+                                {% else %}
+                                    Subir Archivo Excel
+                                {% endif %}
+                            </h4>
+                            <p class="text-muted">
+                                {% if request.GET.type == 'csv' %}
+                                    Formatos soportados: .csv
+                                {% else %}
+                                    Formatos soportados: .xlsx, .xls
+                                {% endif %}
+                            </p>
+                        </div>
+                        
+                        <!-- 🆕 NUEVO: Selector Local vs OneDrive -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold mb-3">
+                                <i class="pe-7s-selector me-2"></i>
+                                Seleccionar Origen del Archivo
+                            </label>
+                            <div class="btn-group w-100" role="group" id="uploadTypeGroup">
+                                <input type="radio" class="btn-check" name="upload_type" id="uploadLocal" 
+                                       value="local" checked onchange="toggleUploadType()">
+                                <label class="btn btn-outline-primary" for="uploadLocal">
+                                    <i class="fas fa-hdd me-2"></i>Desde mi PC
+                                </label>
+                                
+                                <input type="radio" class="btn-check" name="upload_type" id="uploadCloud" 
+                                       value="onedrive" onchange="toggleUploadType()">
+                                <label class="btn btn-outline-info" for="uploadCloud">
+                                    <i class="fas fa-cloud me-2"></i>Desde OneDrive
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- File Input (LOCAL) -->
+                        <div id="localUpload" class="upload-section">
+                            <div class="form-group mb-4">
+                                <label for="file" class="form-label fw-bold">
+                                    <i class="pe-7s-paperclip me-2"></i>
+                                    Seleccionar Archivo
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">
+                                        <i class="pe-7s-folder"></i>
+                                    </span>
+                                    <input type="file" class="form-control" id="file" name="file"
+                                        {% if request.GET.type == 'csv' %}
+                                            accept=".csv"
+                                            placeholder="Selecciona un archivo CSV..."
+                                        {% else %}
+                                            accept=".xlsx,.xls"
+                                            placeholder="Selecciona un archivo Excel..."
+                                        {% endif %}>
+                                </div>
+                                <div class="form-text text-muted mt-2">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Tamaño máximo: 10MB
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- OneDrive Input (NUEVO) -->
+                        <div id="oneDriveUpload" class="upload-section" style="display: none;">
+                            <div class="alert alert-info mb-3">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Pasos:</strong> 
+                                <ol class="mb-0 mt-2">
+                                    <li>En OneDrive, haz clic derecho en tu archivo Excel</li>
+                                    <li>Selecciona "Compartir" y copia el enlace de compartición</li>
+                                    <li>Pega el enlace aquí</li>
+                                </ol>
+                            </div>
+                            
+                            <div class="form-group mb-3">
+                                <label for="onedrive_url" class="form-label fw-bold">
+                                    <i class="fas fa-link me-2"></i>
+                                    URL de Compartición de OneDrive
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">
+                                        <i class="fas fa-cloud"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="onedrive_url" name="onedrive_url"
+                                           placeholder="https://1drv.ms/x/s!..." value="{{ form_data.onedrive_url|default:'' }}">
+                                </div>
+                                <div class="form-text text-muted mt-2">
+                                    <i class="fas fa-lightbulb me-1"></i>
+                                    La URL debe ser de compartición pública o de tu OneDrive personal
+                                </div>
+                            </div>
+                            
+                            <div class="form-group mb-4">
+                                <label for="file_name" class="form-label fw-bold">
+                                    <i class="pe-7s-note2 me-2"></i>
+                                    Nombre del Archivo
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">
+                                        <i class="fas fa-file"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="file_name" name="file_name"
+                                           placeholder="ej: datos_ventas.xlsx" value="{{ form_data.file_name|default:'' }}">
+                                </div>
+                                <div class="form-text text-muted mt-2">
+                                    Nombre descriptivo para identificar el archivo en el proceso
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <input type="hidden" name="file_type" value="{% if request.GET.type == 'csv' %}csv{% else %}excel{% endif %}">
+                        
+                        <!-- Action Buttons -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                            <button type="submit" class="btn btn-primary btn-lg px-5 me-md-2" id="submitBtn">
+                                <i class="pe-7s-cloud-upload me-2"></i>
+                                <span id="submitText">Cargar Archivo</span>
+                            </button>
+                            <a href="{% url 'automatizacion:new_process' %}" class="btn btn-outline-secondary btn-lg px-4">
+                                <i class="pe-7s-back me-2"></i>
+                                Volver
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'automatizacion/styles/upload_excel.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Validación del formulario
+    (function () {
+        'use strict'
+        
+        // Obtener todos los formularios que queremos validar
+        var forms = document.querySelectorAll('.needs-validation')
+        
+        // Iterar sobre ellos y prevenir envío si no son válidos
+        Array.prototype.slice.call(forms)
+            .forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        showNotification('Por favor selecciona un archivo válido', 'error');
+                    } else {
+                        // Mostrar loading mientras se procesa
+                        var submitBtn = form.querySelector('button[type="submit"]');
+                        var originalText = submitBtn.innerHTML;
+                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Procesando...';
+                        submitBtn.disabled = true;
+                        
+                        showNotification('Archivo cargado correctamente, procesando...', 'success');
+                    }
+                    
+                    form.classList.add('was-validated')
+                }, false)
+            })
+    })()
+    
+    // Mejorar la experiencia del input de archivo
+    document.getElementById('file').addEventListener('change', function(e) {
+        var fileName = e.target.files[0] ? e.target.files[0].name : '';
+        if (fileName) {
+            showNotification(`Archivo seleccionado: ${fileName}`, 'info');
+            
+            // Validar tamaño del archivo (10MB = 10 * 1024 * 1024 bytes)
+            var maxSize = 10 * 1024 * 1024;
+            if (e.target.files[0].size > maxSize) {
+                showNotification('El archivo es demasiado grande. Máximo 10MB permitido.', 'error');
+                e.target.value = '';
+                return;
+            }
+            
+            // Animar el botón de upload
+            var uploadBtn = document.querySelector('button[type="submit"]');
+            uploadBtn.classList.add('pulse');
+            setTimeout(() => uploadBtn.classList.remove('pulse'), 1000);
+        }
+    });
+    
+    // 🆕 NUEVO: Función para alternar entre Local y OneDrive
+    function toggleUploadType() {
+        const uploadType = document.querySelector('input[name="upload_type"]:checked').value;
+        const localUpload = document.getElementById('localUpload');
+        const oneDriveUpload = document.getElementById('oneDriveUpload');
+        const fileInput = document.getElementById('file');
+        const submitBtn = document.getElementById('submitBtn');
+        const submitText = document.getElementById('submitText');
+        
+        if (uploadType === 'local') {
+            // Mostrar formulario local
+            localUpload.style.display = 'block';
+            oneDriveUpload.style.display = 'none';
+            fileInput.required = true;
+            
+            // Actualizar botón
+            submitText.innerHTML = '<i class="pe-7s-cloud-upload me-1"></i>Cargar Archivo';
+            submitBtn.classList.remove('btn-info');
+            submitBtn.classList.add('btn-primary');
+            
+        } else {
+            // Mostrar formulario OneDrive
+            localUpload.style.display = 'none';
+            oneDriveUpload.style.display = 'block';
+            fileInput.required = false;
+            
+            // Actualizar botón
+            submitText.innerHTML = '<i class="fas fa-cloud-upload-alt me-1"></i>Conectar OneDrive';
+            submitBtn.classList.remove('btn-primary');
+            submitBtn.classList.add('btn-info');
+        }
+    }
+    
+    // Validación del formulario
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const uploadType = document.querySelector('input[name="upload_type"]:checked').value;
+        
+        if (uploadType === 'local') {
+            // Validar archivo local
+            const fileInput = document.getElementById('file');
+            if (!fileInput.value) {
+                e.preventDefault();
+                showNotification('Por favor selecciona un archivo local', 'error');
+            }
+        } else {
+            // Validar URL de OneDrive
+            const oneDriveUrl = document.getElementById('onedrive_url').value.trim();
+            const fileName = document.getElementById('file_name').value.trim();
+            
+            if (!oneDriveUrl || !fileName) {
+                e.preventDefault();
+                showNotification('Por favor completa la URL de OneDrive y el nombre del archivo', 'error');
+            }
+        }
+    });
+    
+    
+    // Drag and drop functionality
+    var uploadZone = document.querySelector('.upload-zone');
+    var fileInput = document.getElementById('file');
+    
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, unhighlight, false);
+    });
+    
+    uploadZone.addEventListener('drop', handleDrop, false);
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    function highlight() {
+        uploadZone.classList.add('dragover');
+        uploadZone.style.borderColor = '#0891b2';
+        uploadZone.style.backgroundColor = '#e0f2f1';
+    }
+    
+    function unhighlight() {
+        uploadZone.classList.remove('dragover');
+    }
+    
+    function handleDrop(e) {
+        var dt = e.dataTransfer;
+        var files = dt.files;
+        
+        if (files.length > 0) {
+            fileInput.files = files;
+            var event = new Event('change', { bubbles: true });
+            fileInput.dispatchEvent(event);
+        }
+    }
+    
+    // Añadir clase pulse para animación
+    var style = document.createElement('style');
+    style.textContent = `
+        .pulse {
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(14, 116, 144, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(14, 116, 144, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(14, 116, 144, 0); }
+        }
+    `;
+    document.head.appendChild(style);
+</script>
+{% endblock %}

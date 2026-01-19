@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Confirmar Eliminación - {{ process.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Confirmar Eliminación
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-trash-alt text-danger" style="font-size: 3rem;"></i>
+                    </div>
+                    
+                    <div class="alert alert-warning" role="alert">
+                        <h5 class="alert-heading">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            ¡Atención!
+                        </h5>
+                        <p class="mb-0">
+                            Estás a punto de eliminar permanentemente el proceso:
+                        </p>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-body bg-light">
+                            <h6 class="card-title text-dark">
+                                <i class="fas fa-cog me-2"></i>
+                                {{ process.name }}
+                            </h6>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <small class="text-muted">Fuente:</small>
+                                    <div class="fw-medium">
+                                        {% if process.source %}
+                                            <i class="fas fa-database me-1"></i>
+                                            {{ process.source.name }}
+                                        {% else %}
+                                            <span class="text-muted">Sin fuente</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <small class="text-muted">Estado:</small>
+                                    <div class="fw-medium">
+                                        {% if process.status == 'completed' %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check-circle me-1"></i>Completado
+                                            </span>
+                                        {% elif process.status == 'failed' %}
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-exclamation-circle me-1"></i>Fallido
+                                            </span>
+                                        {% elif process.status == 'running' %}
+                                            <span class="badge bg-primary">
+                                                <i class="fas fa-spinner me-1"></i>Ejecutando
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">
+                                                <i class="fas fa-clock me-1"></i>{{ process.get_status_display }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-12">
+                                    <small class="text-muted">Creado:</small>
+                                    <div class="fw-medium">
+                                        <i class="fas fa-calendar me-1"></i>
+                                        {{ process.created_at|date:"d/m/Y H:i" }}
+                                    </div>
+                                </div>
+                            </div>
+                            {% if process.description %}
+                            <div class="row mt-2">
+                                <div class="col-12">
+                                    <small class="text-muted">Descripción:</small>
+                                    <div class="fw-medium">{{ process.description }}</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="alert alert-danger" role="alert">
+                        <h6>
+                            <i class="fas fa-info-circle me-2"></i>
+                            Esta acción:
+                        </h6>
+                        <ul class="mb-0">
+                            <li>Eliminará permanentemente el proceso y toda su configuración</li>
+                            <li>No se pueden recuperar los datos una vez eliminados</li>
+                            <li>Los registros de log del proceso se mantendrán para auditoría</li>
+                            <li>Las tablas dinámicas generadas NO se eliminarán automáticamente</li>
+                        </ul>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-lg me-3">
+                                <i class="fas fa-trash-alt me-2"></i>
+                                Sí, Eliminar Proceso
+                            </button>
+                        </form>
+                        <a href="{% url 'automatizacion:view_process' process_id=process.id %}" class="btn btn-secondary btn-lg">
+                            <i class="fas fa-times me-2"></i>
+                            Cancelar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botón para volver a la lista -->
+    <div class="row mt-3">
+        <div class="col text-center">
+            <a href="{% url 'automatizacion:list_processes' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>
+                Volver a Lista de Procesos
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Agregar confirmación adicional al botón de eliminar
+    const deleteForm = document.querySelector('form[method="post"]');
+    const deleteButton = deleteForm.querySelector('button[type="submit"]');
+    
+    deleteButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // Mostrar confirmación adicional
+        const confirmed = confirm(
+            '¿Estás completamente seguro de que deseas eliminar este proceso?\n\n' +
+            'Esta acción NO se puede deshacer.\n\n' +
+            'Proceso: "{{ process.name }}"'
+        );
+        
+        if (confirmed) {
+            // Cambiar texto del botón para mostrar que está procesando
+            deleteButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Eliminando...';
+            deleteButton.disabled = true;
+            
+            // Enviar el formulario
+            deleteForm.submit();
+        }
+    });
+});
+</script>
+{% endblock %}

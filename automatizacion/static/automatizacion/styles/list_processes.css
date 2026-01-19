@@ -1,0 +1,102 @@
+/* Forzar que la tabla no desborde */
+.table-procesos {
+    width: 100%;
+    table-layout: fixed;
+}
+
+.table-procesos th,
+.table-procesos td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.85rem;
+    padding: 10px 8px !important;
+}
+
+/* Anchos específicos para cada columna */
+.col-nombre { width: 18%; }
+.col-fuente { width: 15%; }
+.col-hojas { width: 15%; }
+.col-modificacion { width: 12%; }
+.col-ejecucion { width: 12%; }
+.col-estado { width: 12%; }
+.col-acciones { width: 16%; }
+
+/* Header sin desbordamiento */
+.header-procesos {
+    background: white;
+    padding: 20px;
+    border-bottom: 2px solid #dee2e6;
+    margin: -15px -15px 20px -15px;
+}
+
+/* Estilos para la paginación - Mejorado */
+.pagination {
+    gap: 8px;
+    padding: 20px 0;
+    border-top: 2px solid #f0f0f0;
+    border-bottom: 2px solid #f0f0f0;
+    background: #fafbfc;
+    border-radius: 8px;
+}
+
+.pagination .page-link {
+    border: 2px solid #dee2e6;
+    color: #0e7490;
+    padding: 10px 14px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    font-weight: 500;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.pagination .page-link:hover:not(.disabled) {
+    background-color: #0e7490;
+    color: white;
+    border-color: #0e7490;
+    box-shadow: 0 4px 8px rgba(14, 116, 144, 0.3);
+    transform: translateY(-2px);
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #0e7490;
+    border-color: #0e7490;
+    color: white;
+    box-shadow: 0 4px 12px rgba(14, 116, 144, 0.4);
+    font-weight: 600;
+}
+
+.pagination .page-item.disabled .page-link {
+    color: #bbb;
+    background-color: #f5f5f5;
+    border-color: #e0e0e0;
+    cursor: not-allowed;
+    opacity: 0.6;
+    box-shadow: none;
+}
+
+/* Contenedor de paginación */
+.pagination-container {
+    margin-top: 30px;
+    margin-bottom: 20px;
+}
+
+/* Info de paginación - Mejorado */
+.pagination-info {
+    text-align: center;
+    padding: 15px 0;
+    color: #555;
+    font-size: 0.95rem;
+    font-weight: 500;
+    background: white;
+    border-radius: 6px;
+    margin-top: 12px;
+    border: 1px solid #e8e8e8;
+}
+
+.pagination-info strong {
+    color: #0e7490;
+    font-weight: 600;
+}

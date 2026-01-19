@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Bases de Datos Disponibles - {{ connection.name }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'automatizacion:index' %}">Inicio</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'automatizacion:list_connections' %}">Conexiones</a></li>
+                    <li class="breadcrumb-item active">Bases de datos en {{ connection.name }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col">
+            <h1 class="h3">Bases de Datos Disponibles en {{ connection.name }}</h1>
+            <p class="text-muted">Servidor: {{ connection.server }}, Puerto: {{ connection.port }}</p>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="row mb-3">
+        <div class="col">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if databases %}
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h2 class="h5 mb-0">Seleccione una base de datos</h2>
+                </div>
+                <div class="card-body">
+                    <form action="{% url 'automatizacion:select_database' connection.id %}" method="post" id="databaseForm">
+                        {% csrf_token %}
+                        
+                        <div class="list-group mb-3">
+                            {% for db in databases %}
+                            <div class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between align-items-center">
+                                    <div>
+                                        <input type="radio" name="selected_database" id="db-{{ forloop.counter }}" value="{{ db }}" class="me-2" required>
+                                        <label for="db-{{ forloop.counter }}" class="mb-0 cursor-pointer">{{ db }}</label>
+                                    </div>
+                                    <div>
+                                        <button type="button" class="btn btn-sm btn-outline-info select-db-btn" data-db="{{ db }}">Seleccionar</button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary">Continuar con Base de Datos Seleccionada</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col">
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                No se encontraron bases de datos disponibles o ocurrió un error al listarlas.
+            </div>
+            <p>Posibles soluciones:</p>
+            <ul>
+                <li>Verifique que las credenciales proporcionadas tengan permisos para listar bases de datos</li>
+                <li>Compruebe que el servidor está en línea y accesible</li>
+                <li>Revise los logs del servidor para más detalles</li>
+            </ul>
+            <a href="{% url 'automatizacion:connect_sql' %}" class="btn btn-secondary">
+                <i class="fas fa-sync me-1"></i> Intentar otra conexión
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Hacer clic en el botón "Seleccionar" marca el radio button correspondiente y envía el formulario
+    $('.select-db-btn').click(function() {
+        const dbName = $(this).data('db');
+        $(`input[value="${dbName}"]`).prop('checked', true);
+        $('#databaseForm').submit();
+    });
+    
+    // También permitir hacer clic en toda la fila para seleccionar la base de datos
+    $('.list-group-item').click(function(e) {
+        // Evitar que se active si se hace clic en el botón
+        if (!$(e.target).hasClass('select-db-btn') && !$(e.target).hasClass('btn')) {
+            const radio = $(this).find('input[type="radio"]');
+            radio.prop('checked', true);
+        }
+    });
+    
+    // Estilo para cursor pointer en las filas
+    $('.list-group-item').css('cursor', 'pointer');
+});
+</script>
+{% endblock %}
+{% endblock %}

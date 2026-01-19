@@ -1,0 +1,113 @@
+2025-11-28 11:03:18,252 - INFO - ================================================================================
+2025-11-28 11:03:18,253 - INFO - INICIANDO PROCESAMIENTO EXCEL MULTIHOJA
+2025-11-28 11:03:18,254 - INFO - Proceso: seflieeeeeeee
+2025-11-28 11:03:18,254 - INFO - Archivo: C:\Users\migue\OneDrive\Escritorio\DJANGO DE NUEVO\opav\proyecto_automatizacion\temp_files\hoja prueba estadarizacion de datus (1)_j8K164i.xlsx
+2025-11-28 11:03:18,254 - INFO - ================================================================================
+2025-11-28 11:03:18,265 - INFO - Hojas seleccionadas: ['Hoja 1', 'hoja 2']
+2025-11-28 11:03:18,265 - INFO - Columnas seleccionadas: {'Hoja 1': ['ID', 'nombre', 'edad', 'genero'], 'hoja 2': ['fecha', 'codigo', 'producto', 'cantidad', 'precio', 'activo', 'categoria']}
+2025-11-28 11:03:18,662 - INFO - Actualizando proceso existente: seflieeeeeeee (ID: 4035)
+2025-11-28 11:03:18,669 - INFO - Proceso 'seflieeeeeeee' actualizado exitosamente (ID: 4035, Versión: 3)
+2025-11-28 11:03:19,554 - WARNING - Not Found: /automatizacion/process/components/navbarGB.html
+2025-11-28 11:03:19,582 - WARNING - Not Found: /automatizacion/process/components/sidebarGB.html
+2025-11-28 11:03:19,610 - WARNING - Not Found: /automatizacion/process/components/drawerGB.html
+2025-11-28 11:07:17,970 - INFO - ================================================================================
+2025-11-28 11:07:17,971 - INFO - INICIANDO PROCESAMIENTO EXCEL MULTIHOJA
+2025-11-28 11:07:17,971 - INFO - Proceso: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+2025-11-28 11:07:17,972 - INFO - Archivo: C:\Users\migue\OneDrive\Escritorio\DJANGO DE NUEVO\opav\proyecto_automatizacion\temp_files\hoja prueba estadarizacion de datus (1)_vZao1Ey.xlsx
+2025-11-28 11:07:17,972 - INFO - ================================================================================
+2025-11-28 11:07:17,986 - INFO - Hojas seleccionadas: ['Hoja 1', 'hoja 2']
+2025-11-28 11:07:17,987 - INFO - Columnas seleccionadas: {'Hoja 1': ['ID', 'nombre', 'edad', 'genero'], 'hoja 2': ['fecha', 'codigo', 'producto', 'cantidad', 'precio', 'activo', 'categoria']}
+2025-11-28 11:07:18,409 - INFO - Actualizando proceso existente: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (ID: 4036)
+2025-11-28 11:07:18,416 - INFO - Proceso 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' actualizado exitosamente (ID: 4036, Versión: 3)
+2025-11-28 11:07:19,153 - WARNING - Not Found: /automatizacion/process/components/navbarGB.html
+2025-11-28 11:07:19,178 - WARNING - Not Found: /automatizacion/process/components/sidebarGB.html
+2025-11-28 11:07:19,204 - WARNING - Not Found: /automatizacion/process/components/drawerGB.html
+2025-11-28 11:09:40,710 - INFO - C:\Users\migue\OneDrive\Escritorio\DJANGO DE NUEVO\opav\proyecto_automatizacion\automatizacion\utils\validators.py changed, reloading.
+2025-11-28 13:47:28,629 - INFO - ================================================================================
+2025-11-28 13:47:28,629 - INFO - INICIANDO PROCESAMIENTO EXCEL MULTIHOJA
+2025-11-28 13:47:28,629 - INFO - Proceso: siisaiasiasisia
+2025-11-28 13:47:28,630 - INFO - Archivo: C:\Users\migue\OneDrive\Escritorio\DJANGO DE NUEVO\opav\proyecto_automatizacion\temp_files\hoja prueba estadarizacion de datus (1)_PiMxYJM.xlsx
+2025-11-28 13:47:28,630 - INFO - ================================================================================
+2025-11-28 13:47:28,636 - INFO - Hojas seleccionadas: ['Hoja 1', 'hoja 2']
+2025-11-28 13:47:28,636 - INFO - Columnas seleccionadas: {'Hoja 1': ['ID'], 'hoja 2': ['fecha']}
+2025-11-28 13:47:28,891 - INFO - Actualizando proceso existente: siisaiasiasisia (ID: 4037)
+2025-11-28 13:47:28,896 - INFO - Proceso 'siisaiasiasisia' actualizado exitosamente (ID: 4037, Versión: 3)
+2025-11-28 13:47:29,259 - WARNING - Not Found: /automatizacion/process/components/navbarGB.html
+2025-11-28 13:47:29,269 - WARNING - Not Found: /automatizacion/process/components/sidebarGB.html
+2025-11-28 13:47:29,279 - WARNING - Not Found: /automatizacion/process/components/drawerGB.html
+2025-11-28 13:47:59,857 - INFO - Procesando archivo Excel: hoja prueba estadarizacion de datus (1).xlsx
+2025-11-28 13:47:59,858 - INFO - Hojas encontradas: 2 - ['Hoja 1', 'hoja 2']
+2025-11-28 13:47:59,858 - INFO - Tipo de almacenamiento: Local (Servidor)
+2025-11-28 13:47:59,878 - INFO - Hoja 'Hoja 1': 4 columnas, 2 filas, nombre sugerido: 'hoja_1'
+2025-11-28 13:47:59,907 - INFO - Hoja 'hoja 2': 7 columnas, 3 filas, nombre sugerido: 'hoja_2'
+2025-11-28 13:48:00,472 - WARNING - Not Found: /automatizacion/excel/184/components/navbarGB.html
+2025-11-28 13:48:00,486 - WARNING - Not Found: /automatizacion/excel/184/components/sidebarGB.html
+2025-11-28 13:48:00,499 - WARNING - Not Found: /automatizacion/excel/184/components/drawerGB.html
+2025-11-28 13:48:17,047 - WARNING - Not Found: /automatizacion/process/components/navbarGB.html
+2025-11-28 13:48:17,058 - WARNING - Not Found: /automatizacion/process/components/sidebarGB.html
+2025-11-28 13:48:17,071 - WARNING - Not Found: /automatizacion/process/components/drawerGB.html
+2025-11-28 13:48:18,812 - WARNING - Not Found: /automatizacion/excel/components/navbarGB.html
+2025-11-28 13:48:18,821 - WARNING - Not Found: /automatizacion/excel/components/sidebarGB.html
+2025-11-28 13:48:18,831 - WARNING - Not Found: /automatizacion/excel/components/drawerGB.html
+2025-11-28 13:48:24,047 - INFO - Procesando archivo Excel: hoja prueba estadarizacion de datus (1).xlsx
+2025-11-28 13:48:24,047 - INFO - Hojas encontradas: 2 - ['Hoja 1', 'hoja 2']
+2025-11-28 13:48:24,048 - INFO - Tipo de almacenamiento: Local (Servidor)
+2025-11-28 13:48:24,058 - INFO - Hoja 'Hoja 1': 4 columnas, 2 filas, nombre sugerido: 'hoja_1'
+2025-11-28 13:48:24,077 - INFO - Hoja 'hoja 2': 7 columnas, 3 filas, nombre sugerido: 'hoja_2'
+2025-11-28 13:48:24,426 - WARNING - Not Found: /automatizacion/excel/185/components/navbarGB.html
+2025-11-28 13:48:24,435 - WARNING - Not Found: /automatizacion/excel/185/components/sidebarGB.html
+2025-11-28 13:48:24,448 - WARNING - Not Found: /automatizacion/excel/185/components/drawerGB.html
+2025-11-28 13:52:01,867 - INFO - Procesando archivo Excel: hoja prueba estadarizacion de datus (1).xlsx
+2025-11-28 13:52:01,868 - INFO - Hojas encontradas: 2 - ['Hoja 1', 'hoja 2']
+2025-11-28 13:52:01,868 - INFO - Tipo de almacenamiento: Local (Servidor)
+2025-11-28 13:52:01,880 - INFO - Hoja 'Hoja 1': 4 columnas, 2 filas, nombre sugerido: 'hoja_1'
+2025-11-28 13:52:01,899 - INFO - Hoja 'hoja 2': 7 columnas, 3 filas, nombre sugerido: 'hoja_2'
+2025-11-28 13:52:02,919 - WARNING - Not Found: /automatizacion/excel/185/components/navbarGB.html
+2025-11-28 13:52:02,933 - WARNING - Not Found: /automatizacion/excel/185/components/sidebarGB.html
+2025-11-28 13:52:02,948 - WARNING - Not Found: /automatizacion/excel/185/components/drawerGB.html
+2025-11-28 13:53:01,587 - INFO - Procesando archivo Excel: hoja prueba estadarizacion de datus (1).xlsx
+2025-11-28 13:53:01,588 - INFO - Hojas encontradas: 2 - ['Hoja 1', 'hoja 2']
+2025-11-28 13:53:01,588 - INFO - Tipo de almacenamiento: Local (Servidor)
+2025-11-28 13:53:01,601 - INFO - Hoja 'Hoja 1': 4 columnas, 2 filas, nombre sugerido: 'hoja_1'
+2025-11-28 13:53:01,619 - INFO - Hoja 'hoja 2': 7 columnas, 3 filas, nombre sugerido: 'hoja_2'
+2025-11-28 13:53:02,238 - WARNING - Not Found: /automatizacion/excel/185/components/navbarGB.html
+2025-11-28 13:53:02,250 - WARNING - Not Found: /automatizacion/excel/185/components/sidebarGB.html
+2025-11-28 13:53:02,261 - WARNING - Not Found: /automatizacion/excel/185/components/drawerGB.html
+2025-11-28 13:53:03,036 - INFO - Procesando archivo Excel: hoja prueba estadarizacion de datus (1).xlsx
+2025-11-28 13:53:03,037 - INFO - Hojas encontradas: 2 - ['Hoja 1', 'hoja 2']
+2025-11-28 13:53:03,037 - INFO - Tipo de almacenamiento: Local (Servidor)
+2025-11-28 13:53:03,048 - INFO - Hoja 'Hoja 1': 4 columnas, 2 filas, nombre sugerido: 'hoja_1'
+2025-11-28 13:53:03,133 - INFO - Hoja 'hoja 2': 7 columnas, 3 filas, nombre sugerido: 'hoja_2'
+2025-11-28 13:53:03,784 - WARNING - Not Found: /automatizacion/excel/185/components/navbarGB.html
+2025-11-28 13:53:03,800 - WARNING - Not Found: /automatizacion/excel/185/components/sidebarGB.html
+2025-11-28 13:53:03,812 - WARNING - Not Found: /automatizacion/excel/185/components/drawerGB.html
+2025-11-28 13:55:44,053 - INFO - Procesando archivo Excel: hoja prueba estadarizacion de datus (1).xlsx
+2025-11-28 13:55:44,053 - INFO - Hojas encontradas: 2 - ['Hoja 1', 'hoja 2']
+2025-11-28 13:55:44,054 - INFO - Tipo de almacenamiento: Local (Servidor)
+2025-11-28 13:55:44,066 - INFO - Hoja 'Hoja 1': 4 columnas, 2 filas, nombre sugerido: 'hoja_1'
+2025-11-28 13:55:44,086 - INFO - Hoja 'hoja 2': 7 columnas, 3 filas, nombre sugerido: 'hoja_2'
+2025-11-28 13:55:44,825 - INFO - Procesando archivo Excel: hoja prueba estadarizacion de datus (1).xlsx
+2025-11-28 13:55:44,825 - INFO - Hojas encontradas: 2 - ['Hoja 1', 'hoja 2']
+2025-11-28 13:55:44,826 - INFO - Tipo de almacenamiento: Local (Servidor)
+2025-11-28 13:55:44,845 - INFO - Hoja 'Hoja 1': 4 columnas, 2 filas, nombre sugerido: 'hoja_1'
+2025-11-28 13:55:44,872 - INFO - Hoja 'hoja 2': 7 columnas, 3 filas, nombre sugerido: 'hoja_2'
+2025-11-28 13:55:44,888 - WARNING - Not Found: /automatizacion/excel/185/components/navbarGB.html
+2025-11-28 13:55:44,897 - WARNING - Not Found: /automatizacion/excel/185/components/sidebarGB.html
+2025-11-28 13:55:44,907 - WARNING - Not Found: /automatizacion/excel/185/components/drawerGB.html
+2025-11-28 13:55:45,417 - INFO - Procesando archivo Excel: hoja prueba estadarizacion de datus (1).xlsx
+2025-11-28 13:55:45,418 - INFO - Hojas encontradas: 2 - ['Hoja 1', 'hoja 2']
+2025-11-28 13:55:45,418 - INFO - Tipo de almacenamiento: Local (Servidor)
+2025-11-28 13:55:45,433 - INFO - Hoja 'Hoja 1': 4 columnas, 2 filas, nombre sugerido: 'hoja_1'
+2025-11-28 13:55:45,471 - INFO - Hoja 'hoja 2': 7 columnas, 3 filas, nombre sugerido: 'hoja_2'
+2025-11-28 13:55:45,498 - WARNING - Not Found: /automatizacion/excel/185/components/navbarGB.html
+2025-11-28 13:55:45,513 - WARNING - Not Found: /automatizacion/excel/185/components/sidebarGB.html
+2025-11-28 13:55:45,527 - WARNING - Not Found: /automatizacion/excel/185/components/drawerGB.html
+2025-11-28 13:55:45,748 - INFO - Procesando archivo Excel: hoja prueba estadarizacion de datus (1).xlsx
+2025-11-28 13:55:45,748 - INFO - Hojas encontradas: 2 - ['Hoja 1', 'hoja 2']
+2025-11-28 13:55:45,749 - INFO - Tipo de almacenamiento: Local (Servidor)
+2025-11-28 13:55:45,763 - INFO - Hoja 'Hoja 1': 4 columnas, 2 filas, nombre sugerido: 'hoja_1'
+2025-11-28 13:55:45,783 - INFO - Hoja 'hoja 2': 7 columnas, 3 filas, nombre sugerido: 'hoja_2'
+2025-11-28 13:55:46,423 - WARNING - Not Found: /automatizacion/excel/185/components/navbarGB.html
+2025-11-28 13:55:46,433 - WARNING - Not Found: /automatizacion/excel/185/components/sidebarGB.html
+2025-11-28 13:55:46,443 - WARNING - Not Found: /automatizacion/excel/185/components/drawerGB.html
+2025-11-28 13:57:14,528 - INFO - C:\Users\migue\OneDrive\Escritorio\DJANGO DE NUEVO\opav\proyecto_automatizacion\automatizacion\views.py changed, reloading.

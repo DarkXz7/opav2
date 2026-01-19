@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+
+{% block title %}Editar Proceso - {{ process.name }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'automatizacion:index' %}">Inicio</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'automatizacion:list_processes' %}">Procesos</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'automatizacion:view_process' process.id %}">{{ process.name }}</a></li>
+                <li class="breadcrumb-item active">Editar</li>
+            </ol>
+        </nav>
+        
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-edit me-2"></i>Editar Proceso: {{ process.name }}</h2>
+        </div>
+    </div>
+</div>
+
+<form method="post" class="row" id="editProcessForm">
+    {% csrf_token %}
+    
+    <div class="col-md-8">
+        <!-- Información General -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Información General</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="name" class="form-label">Nombre del Proceso</label>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ process.name }}" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="description" class="form-label">Descripción</label>
+                    <textarea class="form-control" id="description" name="description" rows="3">{{ process.description|default:"" }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        {% if process.source.source_type == 'excel' %}
+        <!-- Configuración Excel -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Configuración de Hojas Excel</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Archivo:</strong> {{ process.source.name }}</p>
+                
+                {% if available_sheets %}
+                <div class="mb-3">
+                    <label class="form-label">Seleccionar Hojas a Procesar:</label>
+                    <div class="row">
+                        {% for sheet in available_sheets %}
+                        <div class="col-md-6 mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input sheet-checkbox" type="checkbox" 
+                                       value="{{ sheet }}" id="sheet_{{ forloop.counter }}"
+                                       {% if sheet in process.selected_sheets %}checked{% endif %}>
+                                <label class="form-check-label" for="sheet_{{ forloop.counter }}">
+                                    <i class="fas fa-table me-1"></i>{{ sheet }}
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <small class="text-muted">Seleccione las hojas que desea procesar del archivo Excel.</small>
+                </div>
+
+                <!-- Botón para recargar columnas -->
+                <div class="mb-3">
+                    <button type="button" class="btn btn-outline-info btn-sm" id="loadColumnsBtn">
+                        <i class="fas fa-refresh me-1"></i>Cargar Columnas de Hojas Seleccionadas
+                    </button>
+                </div>
+
+                <!-- Sección de Columnas por Hoja -->
+                <div id="columns-section" class="mt-4">
+                    <h6><i class="fas fa-columns me-1"></i>Columnas por Hoja:</h6>
+                    <div id="columns-container">
+                        {% if process.selected_columns %}
+                        {% for sheet_name, columns in process.selected_columns.items %}
+                        <div class="columns-for-sheet mb-3 p-3 border rounded" data-sheet="{{ sheet_name }}">
+                            <h7><strong><i class="fas fa-table me-1"></i>{{ sheet_name }}</strong></h7>
+                            <div class="row mt-2">
+                                {% for column in columns %}
+                                <div class="col-md-4 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input column-checkbox" 
+                                               type="checkbox" checked
+                                               data-sheet="{{ sheet_name }}" 
+                                               value="{{ column }}"
+                                               id="col_{{ sheet_name|slugify }}_{{ forloop.counter }}">
+                                        <label class="form-check-label" for="col_{{ sheet_name|slugify }}_{{ forloop.counter }}">
+                                            <i class="fas fa-columns me-1"></i>{{ column }}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    No se pudieron cargar las hojas del archivo Excel.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if process.source.source_type == 'sql' %}
+        <!-- Configuración SQL -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Configuración SQL Server</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Conexión:</strong> {{ process.source.connection.name }}</p>
+                
+                <div class="mb-3">
+                    <label for="selected_database" class="form-label">Base de Datos:</label>
+                    <select class="form-select" id="selected_database" name="selected_database">
+                        {% for db in available_databases %}
+                        <option value="{{ db }}" {% if db == process.selected_database %}selected{% endif %}>
+                            {{ db }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                {% if available_tables %}
+                <div class="mb-3">
+                    <label class="form-label">Tablas Seleccionadas:</label>
+                    <div class="row">
+                        {% for table in available_tables %}
+                        <div class="col-md-6 mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input table-checkbox" type="checkbox" 
+                                       value="{{ table }}" id="table_{{ forloop.counter }}"
+                                       {% if table in process.selected_tables %}checked{% endif %}>
+                                <label class="form-check-label" for="table_{{ forloop.counter }}">
+                                    <i class="fas fa-table me-1"></i>{{ table }}
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Información de Origen</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Tipo:</strong> {{ process.source.get_source_type_display }}</p>
+                {% if process.source.source_type == 'excel' or process.source.source_type == 'csv' %}
+                    <p><strong>Archivo:</strong> {{ process.source.name }}</p>
+                    <p><strong>Ruta:</strong> <small class="text-muted">{{ process.source.file_path }}</small></p>
+                {% elif process.source.source_type == 'sql' %}
+                    <p><strong>Conexión:</strong> {{ process.source.connection.name }}</p>
+                    <p><strong>Servidor:</strong> {{ process.source.connection.server }}</p>
+                {% endif %}
+                
+                <p><strong>Estado:</strong> 
+                    <span class="badge {% if process.status == 'completed' %}bg-success{% elif process.status == 'failed' %}bg-danger{% elif process.status == 'running' %}bg-warning{% else %}bg-secondary{% endif %}">
+                        {{ process.get_status_display }}
+                    </span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="card">
+            <div class="card-body">
+                <button type="submit" class="btn btn-primary w-100 mb-2">
+                    <i class="fas fa-save me-2"></i>Guardar Cambios
+                </button>
+                <a href="{% url 'automatizacion:view_process' process.id %}" class="btn btn-secondary w-100">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden inputs para enviar datos -->
+    <input type="hidden" name="selected_sheets" id="selected_sheets_hidden">
+    <input type="hidden" name="selected_tables" id="selected_tables_hidden">
+    <input type="hidden" name="selected_columns" id="selected_columns_hidden">
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Inicializar valores
+    updateHiddenFields();
+
+    // Manejar selección de hojas Excel
+    $('.sheet-checkbox').change(function() {
+        updateHiddenFields();
+        // Si se deselecciona una hoja, remover sus columnas del display
+        if (!$(this).is(':checked')) {
+            let sheet = $(this).val();
+            $('.columns-for-sheet[data-sheet="' + sheet + '"]').remove();
+        }
+    });
+
+    // Manejar selección de tablas SQL
+    $('.table-checkbox').change(function() {
+        updateHiddenFields();
+    });
+
+    // Manejar selección de columnas
+    $(document).on('change', '.column-checkbox', function() {
+        updateHiddenFields();
+    });
+
+    // Botón para cargar columnas
+    $('#loadColumnsBtn').click(function() {
+        let selectedSheets = [];
+        $('.sheet-checkbox:checked').each(function() {
+            selectedSheets.push($(this).val());
+        });
+        
+        if (selectedSheets.length === 0) {
+            alert('Por favor, seleccione al menos una hoja primero.');
+            return;
+        }
+
+        // Mostrar indicador de carga
+        $(this).html('<i class="fas fa-spinner fa-spin me-1"></i>Cargando...');
+        $(this).prop('disabled', true);
+        
+        // Simular carga de columnas (aquí podrías hacer una llamada AJAX)
+        // Por ahora, mostraremos columnas de ejemplo
+        setTimeout(() => {
+            loadColumnsForSheets(selectedSheets);
+            $(this).html('<i class="fas fa-refresh me-1"></i>Cargar Columnas de Hojas Seleccionadas');
+            $(this).prop('disabled', false);
+        }, 1000);
+    });
+
+    function loadColumnsForSheets(sheets) {
+        // Limpiar contenedor de columnas
+        $('#columns-container').empty();
+        
+        // Columnas de ejemplo (en una implementación real, esto vendría del servidor)
+        let exampleColumns = ['ID', 'Nombre', 'Email', 'Fecha', 'Descripcion', 'Estado', 'Activo'];
+        
+        sheets.forEach(function(sheet) {
+            if ($('.columns-for-sheet[data-sheet="' + sheet + '"]').length === 0) {
+                let html = `
+                    <div class="columns-for-sheet mb-3 p-3 border rounded" data-sheet="${sheet}">
+                        <h7><strong><i class="fas fa-table me-1"></i>${sheet}</strong></h7>
+                        <div class="row mt-2">
+                `;
+                
+                exampleColumns.forEach(function(column, index) {
+                    html += `
+                        <div class="col-md-4 mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input column-checkbox" 
+                                       type="checkbox" checked
+                                       data-sheet="${sheet}" 
+                                       value="${column}"
+                                       id="col_${sheet.replace(/\s+/g, '_')}_${index}">
+                                <label class="form-check-label" for="col_${sheet.replace(/\s+/g, '_')}_${index}">
+                                    <i class="fas fa-columns me-1"></i>${column}
+                                </label>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div></div>';
+                $('#columns-container').append(html);
+            }
+        });
+        
+        updateHiddenFields();
+    }
+
+    function updateHiddenFields() {
+        // Actualizar hojas seleccionadas
+        let selectedSheets = [];
+        $('.sheet-checkbox:checked').each(function() {
+            selectedSheets.push($(this).val());
+        });
+        $('#selected_sheets_hidden').val(JSON.stringify(selectedSheets));
+
+        // Actualizar tablas seleccionadas
+        let selectedTables = [];
+        $('.table-checkbox:checked').each(function() {
+            selectedTables.push($(this).val());
+        });
+        $('#selected_tables_hidden').val(JSON.stringify(selectedTables));
+
+        // Actualizar columnas seleccionadas
+        let selectedColumns = {};
+        $('.column-checkbox:checked').each(function() {
+            let sheet = $(this).data('sheet');
+            let column = $(this).val();
+            
+            if (!selectedColumns[sheet]) {
+                selectedColumns[sheet] = [];
+            }
+            selectedColumns[sheet].push(column);
+        });
+        $('#selected_columns_hidden').val(JSON.stringify(selectedColumns));
+    }
+
+    // Mostrar/ocultar secciones según el tipo
+    {% if process.source.source_type == 'excel' %}
+        $('#columns-section').show();
+    {% endif %}
+});
+</script>
+{% endblock %}

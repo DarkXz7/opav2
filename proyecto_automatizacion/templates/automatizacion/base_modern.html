@@ -1,0 +1,184 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Sistema de Automatización Excel-SQL{% endblock %}</title>
+    
+    <!-- CSS Libraries -->
+    <link rel="stylesheet" href="{% static 'styles/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'styles/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'styles/bootstrap-icons.css' %}">
+    <link rel="stylesheet" href="{% static 'styles/fontawesome.min.css' %}">
+    <link rel="stylesheet" href="{% static 'styles/material-components-web.min.css' %}">
+    <link rel="stylesheet" href="{% static 'styles/icon.css' %}">
+    <link rel="stylesheet" href="{% static 'styles/pe7sicons.css' %}">
+    <link rel="stylesheet" href="{% static 'styles/all.min.css' %}">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="shortcut icon" href="{% static 'img/favicon-bios-new.ico' %}" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom CSS para el sistema de automatización -->
+    <link rel="stylesheet" href="{% static 'automatizacion/styles/base_modern.css' %}">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-gray-50">
+    <div class="app-container app-theme-white body-tabs-shadow fixed-header fixed-sidebar">
+        
+        <!-- Header Navigation -->
+        {% include 'automatizacion/components/navbarGB.html' %}
+        
+        <!-- Main Content Area -->
+        <div class="app-main">
+            
+            <!-- Sidebar -->
+            {% include 'automatizacion/components/sidebarGB.html' %}
+            
+            <!-- Main Content -->
+            <div class="app-main__outer">
+                <div class="app-main__inner">
+                    
+                    <!-- Page Header -->
+                    <div class="app-page-title system-header">
+                        <div class="page-title-wrapper">
+                            <div class="page-title-heading">
+                                <div class="page-title-icon">
+                                    <i class="pe-7s-server text-white"></i>
+                                </div>
+                                <div>
+                                    <h1 class="text-white font-bold text-2xl">
+                                        {% block page_title %}Sistema de Automatización{% endblock %}
+                                    </h1>
+                                    <div class="page-title-subheading text-cyan-100">
+                                        {% block page_subtitle %}Conversión Excel a SQL Server{% endblock %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Breadcrumb -->
+                            <div class="page-title-actions">
+                                <nav aria-label="breadcrumb">
+                                    <ol class="breadcrumb bg-transparent p-0">
+                                        <li class="breadcrumb-item">
+                                            <a href="{% url 'automatizacion:index' %}" class="text-cyan-100 hover:text-white">
+                                                <i class="fa fa-home"></i> Inicio
+                                            </a>
+                                        </li>
+                                        {% block breadcrumb %}{% endblock %}
+                                    </ol>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Messages -->
+                    {% if messages %}
+                        <div class="container-fluid mb-4">
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                                    <i class="fas fa-{% if message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'success' %}check-circle{% else %}info-circle{% endif %} me-2"></i>
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Main Content -->
+                    <div class="container-fluid">
+                        {% block content %}
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card-modern p-6">
+                                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Bienvenido al Sistema de Automatización</h2>
+                                    <p class="text-gray-600">Selecciona una opción del menú para comenzar.</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endblock %}
+                    </div>
+                </div>
+                
+                <!-- Footer -->
+                <div class="app-wrapper-footer bg-white border-t">
+                    <div class="app-footer-wrapper">
+                        <div class="app-footer-left">
+                            <div class="footer-dots">
+                                <div class="dots-separator"></div>
+                                <div class="dots-separator"></div>
+                                <div class="dots-separator"></div>
+                            </div>
+                        </div>
+                        <div class="app-footer-right">
+                            <ul class="nav">
+                                <li class="nav-item">
+                                    <span class="nav-link">
+                                        Sistema de Automatización Excel-SQL &copy; {{ "now"|date:"Y" }}
+                                    </span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Loading Spinner -->
+        <div class="wheel-and-hamster" id="loading-spinner" style="display:none;">
+            <div class="wheel"></div>
+            <div class="hamster">
+                <div class="hamster__body">
+                    <div class="hamster__head">
+                        <div class="hamster__ear"></div>
+                        <div class="hamster__eye"></div>
+                        <div class="hamster__nose"></div>
+                    </div>
+                    <div class="hamster__limb hamster__limb--fr"></div>
+                    <div class="hamster__limb hamster__limb--fl"></div>
+                    <div class="hamster__limb hamster__limb--br"></div>
+                    <div class="hamster__limb hamster__limb--bl"></div>
+                    <div class="hamster__tail"></div>
+                </div>
+            </div>
+            <div class="spoke"></div>
+        </div>
+    </div>
+
+    <!-- JavaScript Libraries -->
+    <script src="{% static 'scripts/jquery.min.js' %}"></script>
+    <script src="{% static 'scripts/popper.min.js' %}"></script>
+    <script src="{% static 'scripts/bootstrap.min.js' %}"></script>
+    <script src="{% static 'scripts/material-components-web.min.js' %}"></script>
+    <script src="{% static 'scripts/components.js' %}"></script>
+    <script src="{% static 'scripts/script.js' %}"></script>
+    
+    <!-- Sistema de validación existente -->
+    <script src="{% static 'js/validation_and_inference.js' %}"></script>
+    
+    <script>
+        // Funciones de utilidad para el sistema
+        function showLoading() {
+            document.getElementById('loading-spinner').style.display = 'block';
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading-spinner').style.display = 'none';
+        }
+        
+        // Auto-hide alerts after 5 seconds
+        setTimeout(function() {
+            $('.alert').fadeOut('slow');
+        }, 5000);
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

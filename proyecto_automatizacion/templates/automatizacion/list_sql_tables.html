@@ -1,0 +1,317 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tablas en {{ database }} - {{ connection.name }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'automatizacion:index' %}">Inicio</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'automatizacion:list_connections' %}">Conexiones</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'automatizacion:list_sql_databases' connection.id %}">Bases de datos</a></li>
+                    <li class="breadcrumb-item active">Tablas en {{ database }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col">
+            <h1 class="h3">Tablas en {{ database }}</h1>
+            <p class="text-muted">
+                Servidor: {{ connection.server }}, 
+                Base de datos: {{ database }}, 
+                <a href="{% url 'automatizacion:list_sql_databases' connection.id %}" class="link-primary">
+                    <i class="fas fa-exchange-alt me-1"></i>Cambiar base de datos
+                </a>
+            </p>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="row mb-3">
+        <div class="col">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h2 class="h5 mb-0">Tablas Disponibles</h2>
+                    <div>
+                        <input type="text" id="tableSearch" class="form-control form-control-sm" placeholder="Buscar tabla...">
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="tablesTable">
+                            <thead>
+                                <tr>
+                                    <th>Esquema</th>
+                                    <th>Nombre de Tabla</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if tables %}
+                                    {% for table in tables %}
+                                    <tr>
+                                        <td>{{ table.schema }}</td>
+                                        <td>{{ table.name }}</td>
+                                        <td>
+                                            <a href="{% url 'automatizacion:list_sql_columns' connection.id table.full_name %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-columns me-1"></i>Ver Columnas
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="3" class="text-center">No se encontraron tablas en la base de datos</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Total: <strong>{{ tables|length }}</strong> tablas</span>
+                        <div>
+                            <button class="btn btn-primary" id="selectTablesBtn" disabled>
+                                <i class="fas fa-check-square me-1"></i>Seleccionar Tablas
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row" id="selectionArea" style="display: none;">
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h2 class="h5 mb-0">Tablas Seleccionadas</h2>
+                </div>
+                <div class="card-body">
+                    <div id="selectedTables" class="mb-3">
+                        <!-- Aquí se mostrarán las tablas seleccionadas -->
+                    </div>
+                    
+                    <form id="processSaveForm">
+                        <div class="mb-3">
+                            <label for="processName" class="form-label">Nombre del proceso</label>
+                            <input type="text" class="form-control" id="processName" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="processDescription" class="form-label">Descripción (opcional)</label>
+                            <textarea class="form-control" id="processDescription" rows="2"></textarea>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="button" class="btn btn-secondary" id="cancelSelectionBtn">Cancelar</button>
+                            <button type="button" class="btn btn-primary" id="saveProcessBtn">
+                                <i class="fas fa-save me-1"></i>Guardar Proceso
+                            </button>
+                            <button type="button" class="btn btn-success" id="nextStepBtn">
+                                <i class="fas fa-arrow-right me-1"></i>Ver Columnas
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Busqueda de tablas
+    $('#tableSearch').on('keyup', function() {
+        var value = $(this).val().toLowerCase();
+        $('#tablesTable tbody tr').filter(function() {
+            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+        });
+    });
+    
+    // Selección de tablas
+    var selectedTables = [];
+    
+    $('#tablesTable tbody').on('click', 'tr', function() {
+        $(this).toggleClass('table-primary');
+        
+        var schema = $(this).find('td:eq(0)').text();
+        var name = $(this).find('td:eq(1)').text();
+        var fullName = schema + '.' + name;
+        
+        if ($(this).hasClass('table-primary')) {
+            if (!selectedTables.includes(fullName)) {
+                selectedTables.push(fullName);
+            }
+        } else {
+            const index = selectedTables.indexOf(fullName);
+            if (index > -1) {
+                selectedTables.splice(index, 1);
+            }
+        }
+        
+        // Habilitar/deshabilitar botón según si hay selección
+        $('#selectTablesBtn').prop('disabled', selectedTables.length === 0);
+    });
+    
+    // Mostrar área de selección
+    $('#selectTablesBtn').click(function() {
+        updateSelectedTablesList();
+        $('#selectionArea').show();
+        $('html, body').animate({
+            scrollTop: $('#selectionArea').offset().top
+        }, 500);
+    });
+    
+    // Cancelar selección
+    $('#cancelSelectionBtn').click(function() {
+        $('#selectionArea').hide();
+        $('#tablesTable tbody tr').removeClass('table-primary');
+        selectedTables = [];
+        $('#selectTablesBtn').prop('disabled', true);
+    });
+    
+    // Actualizar lista de tablas seleccionadas
+    function updateSelectedTablesList() {
+        var html = '';
+        if (selectedTables.length > 0) {
+            html += '<ul class="list-group">';
+            selectedTables.forEach(function(table) {
+                html += '<li class="list-group-item d-flex justify-content-between align-items-center">';
+                html += table;
+                html += '<button type="button" class="btn btn-sm btn-outline-danger remove-table" data-table="' + table + '">';
+                html += '<i class="fas fa-times"></i>';
+                html += '</button>';
+                html += '</li>';
+            });
+            html += '</ul>';
+        } else {
+            html = '<div class="alert alert-warning">No hay tablas seleccionadas</div>';
+        }
+        
+        $('#selectedTables').html(html);
+        
+        // Evento para eliminar tablas de la selección
+        $('.remove-table').click(function() {
+            var table = $(this).data('table');
+            const index = selectedTables.indexOf(table);
+            if (index > -1) {
+                selectedTables.splice(index, 1);
+            }
+            
+            // Desmarcar la fila en la tabla
+            $('#tablesTable tbody tr').each(function() {
+                var schema = $(this).find('td:eq(0)').text();
+                var name = $(this).find('td:eq(1)').text();
+                var fullName = schema + '.' + name;
+                
+                if (fullName === table) {
+                    $(this).removeClass('table-primary');
+                }
+            });
+            
+            updateSelectedTablesList();
+            $('#selectTablesBtn').prop('disabled', selectedTables.length === 0);
+            
+            if (selectedTables.length === 0) {
+                $('#selectionArea').hide();
+            }
+        });
+    }
+    
+    // Guardar proceso
+    $('#saveProcessBtn').click(function() {
+        if (selectedTables.length === 0) {
+            alert('Debe seleccionar al menos una tabla');
+            return;
+        }
+        
+        var processName = $('#processName').val();
+        if (!processName) {
+            alert('Debe proporcionar un nombre para el proceso');
+            return;
+        }
+        
+        var processData = {
+            name: processName,
+            description: $('#processDescription').val(),
+            source_id: {{ source.id }},
+            selected_tables: selectedTables,
+            selected_database: '{{ database }}'
+        };
+        
+        // Enviar datos al servidor
+        $.ajax({
+            url: '{% url "automatizacion:save_process" %}',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(processData),
+            success: function(response) {
+                alert('Proceso guardado correctamente');
+                // Guardar ID del proceso para usar en siguientes pasos
+                localStorage.setItem('current_process_id', response.process_id);
+            },
+            error: function(xhr) {
+                alert('Error al guardar el proceso: ' + xhr.responseJSON.error);
+            }
+        });
+    });
+    
+    // Ir a ver columnas de la primera tabla seleccionada
+    $('#nextStepBtn').click(function() {
+        if (selectedTables.length === 0) {
+            alert('Debe seleccionar al menos una tabla');
+            return;
+        }
+        
+        var processName = $('#processName').val();
+        if (!processName) {
+            alert('Debe proporcionar un nombre para el proceso');
+            return;
+        }
+        
+        // Guardar proceso primero
+        var processData = {
+            name: processName,
+            description: $('#processDescription').val(),
+            source_id: {{ source.id }},
+            selected_tables: selectedTables,
+            selected_database: '{{ database }}'
+        };
+        
+        $.ajax({
+            url: '{% url "automatizacion:save_process" %}',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(processData),
+            success: function(response) {
+                // Redirigir a ver columnas de la primera tabla
+                window.location.href = '/automatizacion/sql/connection/{{ connection.id }}/table/' + selectedTables[0] + '/columns/?process_id=' + response.process_id;
+            },
+            error: function(xhr) {
+                alert('Error al guardar el proceso: ' + xhr.responseJSON.error);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

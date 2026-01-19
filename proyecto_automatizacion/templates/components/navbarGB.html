@@ -1,0 +1,220 @@
+{% load static %}
+<script src="https://cdn.tailwindcss.com"></script>
+<div class="app-header header-shadow bg-white text-white ">
+    <div class="app-header__logo">
+        <div class="logo-src d-flex align-items-center">
+            <a class="d-flex align-items-center fw-bolder">
+            <img src="{% static 'automatizacion/img/bios.png' %}" alt="" class="">
+            </a>
+        </div>
+        <div class="logo-mobile d-flex align-items-center d-none">
+            <img src="{% static 'automatizacion/img/bios.png' %}" alt="" class="">
+        </div>
+        <div class="header__pane ml-auto">
+            <div>
+                <button type="button" class="hamburger close-sidebar-btn hamburger--elastic mt-3 -mr-14 text-green-600"
+                    data-class="closed-sidebar">
+                    <span class="hamburger-box">
+                        <span class="hamburger-inner"></span>
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="app-header__mobile-menu bg-cyan-700">
+        <div>
+            <button type="button" class="hamburger hamburger--elastic mobile-toggle-nav bg-cyan-700">
+                <span class="hamburger-box bg-cyan-700">
+                    <span class="hamburger-inner bg-cyan-700"></span>
+                </span>
+            </button>
+        </div>
+    </div>
+    <div class="app-header__menu">
+        <span>
+            <button type="button" class="btn-icon btn-icon-only btn-sm mobile-toggle-header-nav bg-green-600">
+                <span class="btn-icon-wrapper">
+                    <i class="fa fa-ellipsis-v fa-w-6"></i>
+                </span>
+            </button>
+        </span>
+    </div>
+    <div class="app-header__content">
+                                {% if messages %}
+                                    <div class="">
+                                        {% for message in messages %}
+                                            <div class="alert-message p-2 rounded-lg {% if message.tags == 'error' %} bg-red-700 text-white {% else %} bg-cyan-700 text-white {% endif %}">
+                                                {{ message }}
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+        
+        <div class="app-header-right">
+
+            <div class="header-btn-lg pr-0">
+               
+                <div class="widget-content p-0">
+                    
+                    <div class="widget-content-wrapper">
+                        
+                        
+                        <div class="widget-content-left">
+                            <div class="btn-group">
+                                
+                                <div class="flex flex-col items-center justify-center space-y-2">
+                                    {% if request.user.is_authenticated %}
+                                        <h4 class="text-cyan-700 font-semibold text-sm text-center flex items-center space-x-1">
+                                            <i class="metismenu-icon pe-7s-user text-2xl text-cyan-700"></i> 
+                                            <strong class="text-cyan-700">{{ user.username }}</strong>
+                                            <a class="text-orange-600 hover:text-orange-500 flex items-center" href="#"> | Salir</a>
+                                        </h4>
+                                    {% else %}
+                                        <a href="#" class="flex items-center justify-center">
+                                            <i class="metismenu-icon pe-7s-user text-3xl hover:text-cyan-700 text-cyan-700"></i>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                                
+                                <!--<a data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" class="p-0 btn">
+                                    <img width="36" class="rounded-circle" src="{% static 'automatizacion/img/stats.Recurso 1-100.jpg' %}" alt="">
+                                    
+                                </a>
+                                <div tabindex="-1" role="menu" aria-hidden="true"
+                                    class="rm-pointers dropdown-menu-lg dropdown-menu dropdown-menu-right">
+                                    <div class="dropdown-menu-header">
+                                        <div class="dropdown-menu-header-inner bg-info">
+                                            <div class="menu-header-image opacity-2"></div>
+                                            <div class="menu-header-content text-left">
+                                                <div class="widget-content p-0">
+                                                    <div class="widget-content-wrapper">
+                                                        <div class="widget-content-left mr-3">
+                                                            <img width="42" class="rounded-circle"
+                                                                src="{% static 'automatizacion/img/stats.Recurso 1-100.jpg' %}" alt="">
+                                                        </div>
+                                                        <div class="widget-content-left">
+                                                            <div class="widget-heading">Administrador</div>
+                                                            <div class="widget-subheading opacity-8">A short
+                                                                profile description</div>
+                                                        </div>
+                                                        <div class="widget-content-right mr-2">
+                                                            <button
+                                                                class="btn-pill btn-shadow btn-shine btn btn-focus">Logout</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="scroll-area-xs" style="height: 150px;">
+                                        <div class="scrollbar-container ps">
+                                            <ul class="nav flex-column">
+                                                <li class="nav-item-header nav-item">Activity</li>
+                                                <li class="nav-item">
+                                                    <a href="javascript:void(0);" class="nav-link">Chat
+                                                        <div class="ml-auto badge badge-pill badge-info">8</div>
+                                                    </a>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <a href="javascript:void(0);" class="nav-link">Recover
+                                                        Password</a>
+                                                </li>
+                                                <li class="nav-item-header nav-item">My Account
+                                                </li>
+                                                <li class="nav-item">
+                                                    <a href="javascript:void(0);" class="nav-link">Settings
+                                                        <div class="ml-auto badge badge-success">New</div>
+                                                    </a>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <a href="javascript:void(0);" class="nav-link">Messages
+                                                        <div class="ml-auto badge badge-warning">512</div>
+                                                    </a>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <a href="javascript:void(0);" class="nav-link">Logs</a>
+                                                </li>
+                                            </ul>
+                                            <div class="ps__rail-x" style="left: 0px; bottom: 0px;">
+                                                <div class="ps__thumb-x" tabindex="0" style="left: 0px; width: 0px;">
+                                                </div>
+                                            </div>
+                                            <div class="ps__rail-y" style="top: 0px; right: 0px;">
+                                                <div class="ps__thumb-y" tabindex="0" style="top: 0px; height: 0px;">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <ul class="nav flex-column">
+                                        <li class="nav-item-divider mb-0 nav-item"></li>
+                                    </ul>
+                                    <div class="grid-menu grid-menu-2col">
+                                        <div class="no-gutters row">
+                                            <div class="col-sm-6">
+                                                <button
+                                                    class="btn-icon-vertical btn-transition btn-transition-alt pt-2 pb-2 btn btn-outline-warning">
+                                                    <i
+                                                        class="pe-7s-chat icon-gradient bg-amy-crisp btn-icon-wrapper mb-2"></i>
+                                                    Message Inbox
+                                                </button>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <button
+                                                    class="btn-icon-vertical btn-transition btn-transition-alt pt-2 pb-2 btn btn-outline-danger">
+                                                    <i
+                                                        class="pe-7s-ticket icon-gradient bg-love-kiss btn-icon-wrapper mb-2"></i>
+                                                    <b>Support Tickets</b>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <ul class="nav flex-column">
+                                        <li class="nav-item-divider nav-item">
+                                        </li>
+                                        <li class="nav-item-btn text-center nav-item">
+                                            <button class="btn-wide btn btn-primary btn-sm"> Open Messages
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="widget-content-left  ml-3 header-user-info">
+                            <div class="widget-heading"> Admin </div>
+                            <div class="widget-subheading"> Administrador BiosApps </div>
+                        </div>-->
+                        <!--<div class="widget-content-right header-user-info ml-3">
+                            <button type="button" class="btn-shadow p-1 btn btn-primary btn-sm show-toastr-example">
+                                <i class="fa text-white fa-calendar pr-1 pl-1"></i>
+                            </button>
+                        </div>-->
+                    </div>
+                </div>
+            </div>
+            <!--<div class="header-btn-lg">
+                <button type="button" class="hamburger hamburger--elastic open-right-drawer">
+                    <span class="hamburger-box">
+                        <span class="hamburger-inner"></span>
+                    </span>
+                </button>
+            </div>-->
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Selecciona todos los mensajes de alerta
+        const alerts = document.querySelectorAll(".alert-message");
+    
+        alerts.forEach(alert => {
+            // Oculta la alerta después de 5 segundos (5000 ms)
+            setTimeout(() => {
+                alert.classList.add("opacity-0", "transition-opacity", "duration-500");
+                setTimeout(() => alert.remove(), 500); // Remueve el elemento después de la transición
+            }, 6000);
+        });
+    });
+</script>
+    

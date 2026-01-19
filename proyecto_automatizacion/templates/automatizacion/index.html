@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Inicio - Sistema de Migración de Datos{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'automatizacion/styles/index.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <h1 class="display-4 mb-4">Sistema de Migración de Datos</h1>
+                <p class="lead mb-4">
+                    Herramienta flexible para importar datos desde múltiples fuentes 
+                    como Excel, CSV y SQL Server, con selección granular de tablas y columnas.
+                </p>
+                <div class="mt-4">
+                    <a href="{% url 'automatizacion:new_process' %}" class="btn btn-primary btn-lg px-4">
+                        <i class="fas fa-plus-circle me-2"></i>Nuevo Proceso
+                    </a>
+                    <a href="{% url 'automatizacion:list_processes' %}" class="btn btn-outline-primary btn-lg px-4 ms-3">
+                        <i class="fas fa-list me-2"></i>Ver Procesos Guardados
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="main-card mb-3 card">
+            <div class="card-header">
+                <div class="card-header-title">
+                    <i class="pe-7s-clock text-primary me-2"></i>
+                    Procesos Recientes
+                </div>
+                <div class="btn-actions-pane-right">
+                    <span class="badge bg-primary">{{ recent_processes|length }}/5</span>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_processes %}
+                    <div class="processes-list">
+                        {% for process in recent_processes %}
+                            <div class="process-item p-3 border-bottom {% if forloop.last %}border-0{% endif %}">
+                                <div class="d-flex align-items-center">
+                                    <div class="process-icon me-3">
+                                        <i class="pe-7s-note text-info fs-4"></i>
+                                    </div>
+                                    <div class="process-info flex-grow-1">
+                                        <h6 class="process-name mb-1 text-dark">{{ process.name }}</h6>
+                                        <div class="process-details">
+                                            <div class="process-badges mb-1">
+                                                <span class="badge bg-info me-1">{{ process.source.get_source_type_display }}</span>
+                                                <span class="badge {% if process.status == 'completed' %}bg-success{% elif process.status == 'failed' %}bg-danger{% else %}bg-warning{% endif %}">
+                                                    {{ process.get_status_display }}
+                                                </span>
+                                            </div>
+                                            <small class="text-muted">
+                                                <i class="pe-7s-date me-1"></i>
+                                                {{ process.created_at|timesince }} ago
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <div class="process-actions">
+                                        <a href="{% url 'automatizacion:view_process' process.id %}" 
+                                           class="btn btn-sm btn-outline-primary" 
+                                           title="Ver proceso">
+                                            <i class="pe-7s-look"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state text-center py-4">
+                        <div class="empty-icon mb-3">
+                            <i class="pe-7s-note text-muted" style="font-size: 3rem;"></i>
+                        </div>
+                        <h6 class="text-muted mb-2">No hay procesos guardados</h6>
+                        <p class="text-muted small mb-3">Inicia tu primer proceso de automatización</p>
+                        <a href="{% url 'automatizacion:new_process' %}" class="btn btn-sm btn-primary">
+                            <i class="pe-7s-plus me-1"></i>
+                            Nuevo Proceso
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-light">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="footer-info">
+                        <small class="text-muted">
+                            {% if recent_processes %}
+                                Mostrando últimos 5 procesos
+                            {% else %}
+                                0 procesos disponibles
+                            {% endif %}
+                        </small>
+                    </div>
+                    <div class="footer-actions">
+                        <a href="{% url 'automatizacion:new_process' %}" 
+                           class="btn btn-sm btn-success me-2" 
+                           title="Nuevo proceso">
+                            <i class="pe-7s-plus me-1"></i>
+                            Nuevo
+                        </a>
+                        <a href="{% url 'automatizacion:list_processes' %}" 
+                           class="btn btn-sm btn-outline-primary" 
+                           title="Ver todos los procesos">
+                            <i class="pe-7s-search me-1"></i>
+                            Explorar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="main-card mb-3 card">
+            <div class="card-header">
+                <div class="card-header-title">
+                    <i class="pe-7s-server text-primary me-2"></i>
+                    Conexiones Guardadas
+                </div>
+                <div class="btn-actions-pane-right">
+                    <span class="badge bg-primary">{{ saved_connections|length }}/5</span>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                {% if saved_connections %}
+                    <div class="connections-list">
+                        {% for connection in saved_connections %}
+                            <div class="connection-item p-3 border-bottom {% if forloop.last %}border-0{% endif %}">
+                                <div class="d-flex align-items-center">
+                                    <div class="connection-icon me-3">
+                                        <i class="pe-7s-database text-success fs-4"></i>
+                                    </div>
+                                    <div class="connection-info flex-grow-1">
+                                        <h6 class="connection-name mb-1 text-dark">{{ connection.name }}</h6>
+                                        <div class="connection-details">
+                                            <small class="text-muted d-block">
+                                                <i class="pe-7s-server me-1"></i>{{ connection.server }}/{{ connection.database }}
+                                            </small>
+                                            <small class="text-muted">
+                                                <i class="pe-7s-clock me-1"></i>
+                                                {% if connection.last_used %}
+                                                    {{ connection.last_used|timesince }} ago
+                                                {% else %}
+                                                    Nunca usado
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <div class="connection-actions">
+                                        <a href="{% url 'automatizacion:view_connection' connection.id %}" 
+                                           class="btn btn-sm btn-outline-primary" 
+                                           title="Ver conexión">
+                                            <i class="pe-7s-look"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state text-center py-4">
+                        <div class="empty-icon mb-3">
+                            <i class="pe-7s-server text-muted" style="font-size: 3rem;"></i>
+                        </div>
+                        <h6 class="text-muted mb-2">No hay conexiones guardadas</h6>
+                        <p class="text-muted small mb-3">Crea tu primera conexión para comenzar</p>
+                        <a href="{% url 'automatizacion:connect_sql' %}" class="btn btn-sm btn-primary">
+                            <i class="pe-7s-plus me-1"></i>
+                            Nueva Conexión
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-light">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="footer-info">
+                        <small class="text-muted">
+                            {% if saved_connections %}
+                                Mostrando últimas 5 conexiones
+                            {% else %}
+                                0 conexiones disponibles
+                            {% endif %}
+                        </small>
+                    </div>
+                    <div class="footer-actions">
+                        <a href="{% url 'automatizacion:connect_sql' %}" 
+                           class="btn btn-sm btn-primary me-2" 
+                           title="Nueva conexión">
+                            <i class="pe-7s-plus me-1"></i>
+                            Nueva
+                        </a>
+                        <a href="{% url 'automatizacion:list_connections' %}" 
+                           class="btn btn-sm btn-outline-primary" 
+                           title="Ver todas las conexiones">
+                            <i class="pe-7s-search me-1"></i>
+                            Explorar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Acerca del Sistema</h5>
+            </div>
+            <div class="card-body">
+                <h4>Características principales</h4>
+                <div class="row mt-3">
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="text-center mb-3">
+                                    <i class="fas fa-file-excel text-success fa-3x"></i>
+                                </div>
+                                <h5 class="card-title text-center">Archivos Excel/CSV</h5>
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-check-circle text-success me-2"></i>Selección de hojas específicas</li>
+                                    <li><i class="fas fa-check-circle text-success me-2"></i>Vista previa de datos</li>
+                                    <li><i class="fas fa-check-circle text-success me-2"></i>Selección de columnas</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="text-center mb-3">
+                                    <i class="fas fa-database text-primary fa-3x"></i>
+                                </div>
+                                <h5 class="card-title text-center">SQL Server</h5>
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-check-circle text-success me-2"></i>Conexión segura</li>
+                                    <li><i class="fas fa-check-circle text-success me-2"></i>Exploración de tablas</li>
+                                    <li><i class="fas fa-check-circle text-success me-2"></i>Selección de columnas</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="text-center mb-3">
+                                    <i class="fas fa-sync-alt text-warning fa-3x"></i>
+                                </div>
+                                <h5 class="card-title text-center">Automatización</h5>
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-check-circle text-success me-2"></i>Guardar configuraciones</li>
+                                    <li><i class="fas fa-check-circle text-success me-2"></i>Ejecutar procesos guardados</li>
+                                    <li><i class="fas fa-check-circle text-success me-2"></i>Historiales de ejecución</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
