@@ -29,18 +29,22 @@
                 <div class="steps">
                     <div class="step active">
                         <div class="step-icon">1</div>
-                        <div class="step-label">Conexión</div>
+                        <div class="step-label">Conexión al Servidor</div>
                     </div>
                     <div class="step">
                         <div class="step-icon">2</div>
-                        <div class="step-label">Seleccionar tablas</div>
+                        <div class="step-label">Seleccionar BD</div>
                     </div>
                     <div class="step">
                         <div class="step-icon">3</div>
-                        <div class="step-label">Seleccionar columnas</div>
+                        <div class="step-label">Seleccionar tablas</div>
                     </div>
                     <div class="step">
                         <div class="step-icon">4</div>
+                        <div class="step-label">Seleccionar columnas</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-icon">5</div>
                         <div class="step-label">Guardar proceso</div>
                     </div>
                 </div>
@@ -71,21 +75,18 @@
                         </div>
                     </div>
                     
+                    <!-- Opciones avanzadas (colapsable) -->
                     <div class="mb-3">
-                        <label for="port" class="form-label">Puerto</label>
-                        <input type="text" class="form-control" id="port" name="port" 
-                               value="{{ form_data.port|default:'1433' }}">
-                        <div class="form-text">Puerto SQL Server (por defecto: 1433).</div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="database" class="form-label">Base de datos</label>
-                        <input type="text" class="form-control" id="database" name="database" 
-                               value="{{ form_data.database|default:'' }}" 
-                               placeholder="NombreBaseDatos" required>
-                        <div class="form-text">Nombre de la base de datos a la que deseas conectarte.</div>
-                        <div class="invalid-feedback">
-                            Por favor ingresa el nombre de la base de datos.
+                        <a class="text-muted" data-bs-toggle="collapse" href="#advancedOptions" role="button" aria-expanded="false">
+                            <i class="fas fa-cog me-1"></i>Opciones Avanzadas (opcional)
+                        </a>
+                        <div class="collapse mt-2" id="advancedOptions">
+                            <div class="card card-body bg-light">
+                                <label for="port" class="form-label">Puerto</label>
+                                <input type="text" class="form-control" id="port" name="port" 
+                                       value="{{ form_data.port|default:'' }}" placeholder="1433">
+                                <small class="form-text text-muted">Solo especificar si el servidor usa un puerto diferente al estándar. Dejar vacío para usar configuración por defecto.</small>
+                            </div>
                         </div>
                     </div>
                     
@@ -108,7 +109,8 @@
                     </div>
                     
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>Asegúrate de que el controlador ODBC para SQL Server esté instalado en el servidor.
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Paso siguiente:</strong> Después de conectar, podrás ver y seleccionar las bases de datos disponibles en el servidor.
                     </div>
                     
                     <div class="d-grid gap-2">

@@ -262,9 +262,24 @@ class MigrationProcess(models.Model):
     selected_columns = models.JSONField(null=True, blank=True)  # Dict de columnas seleccionadas por tabla/hoja
     column_mappings = models.JSONField(null=True, blank=True)  # Dict de mapeos: {'tabla': {'nombre_original': 'nombre_personalizado'}}
     
-    # Destino de datos
+    # Destino de datos (configuración dinámica)
+    destination_connection = models.ForeignKey(
+        DatabaseConnection,
+        on_delete=models.CASCADE,
+        related_name='destination_processes',
+        help_text="Conexión SQL Server destino donde se guardarán ResultadosProcesados y ProcesosGuardados",
+        null=True,  # Temporal para migración
+        blank=True
+    )
+    destination_database = models.CharField(
+        max_length=100,
+        default='DestinoAutomatizacion',
+        help_text="Nombre de la base de datos destino"
+    )
+    
+    # Campos legacy (mantener por compatibilidad temporal)
     target_db_name = models.CharField(max_length=100, default='DestinoAutomatizacion')
-    target_db_connection = models.ForeignKey(DatabaseConnection, on_delete=models.SET_NULL, null=True, blank=True, related_name='target_processes')
+    target_db_connection = models.ForeignKey(DatabaseConnection, on_delete=models.SET_NULL, null=True, blank=True, related_name='target_processes_legacy')
     target_table = models.CharField(max_length=100, blank=True, null=True)  # Tabla de destino
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')

@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Configurar Destino - Sistema de Migración de Datos{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'automatizacion/styles/connect_sql.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'automatizacion:index' %}">Inicio</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'automatizacion:new_process' %}">Nuevo Proceso</a></li>
+                <li class="breadcrumb-item active">Configurar Destino</li>
+            </ol>
+        </nav>
+        
+        <h2 class="mb-4"><i class="fas fa-arrow-down me-2"></i>¿Dónde guardar los resultados?</h2>
+        <p class="text-muted">Seleccione el servidor SQL Server destino donde se almacenarán los datos procesados y la tabla de control ProcesosGuardados.</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <!-- Opción 1: Usar conexión existente -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-database me-2"></i>Opción 1: Usar Conexión Existente</h5>
+            </div>
+            <div class="card-body">
+                {% if connections %}
+                <form id="useExistingForm">
+                    <div class="row">
+                        <div class="col-md-7">
+                            <label for="existing_connection" class="form-label">Seleccionar Conexión</label>
+                            <select class="form-select" id="existing_connection" name="connection_id">
+                                <option value="">-- Seleccione una conexión --</option>
+                                {% for conn in connections %}
+                                <option value="{{ conn.id }}" data-server="{{ conn.server }}">
+                                    {{ conn.name }} ({{ conn.server }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label for="existing_database" class="form-label">Base de Datos Destino</label>
+                            <input type="text" class="form-control" id="existing_database" name="database_name" 
+                                   placeholder="DestinoAutomatizacion" value="DestinoAutomatizacion">
+                            <small class="form-text text-muted">Se creará si no existe</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-primary" id="btnUseExisting">
+                            <i class="fas fa-check me-2"></i>Usar Esta Conexión
+                        </button>
+                    </div>
+                </form>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No hay conexiones guardadas. Cree una nueva conexión debajo.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Opción 2: Crear nueva conexión -->
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Opción 2: Crear Nueva Conexión Destino</h5>
+            </div>
+            <div class="card-body">
+                <form id="createNewForm" class="needs-validation" novalidate>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="new_name" class="form-label">Nombre de la Conexión</label>
+                                <input type="text" class="form-control" id="new_name" name="name" 
+                                       placeholder="Mi Servidor Destino" required>
+                                <small class="form-text text-muted">Un nombre descriptivo</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="new_database" class="form-label">Base de Datos Destino</label>
+                                <input type="text" class="form-control" id="new_database" name="database_name" 
+                                       placeholder="DestinoAutomatizacion" value="DestinoAutomatizacion" required>
+                                <small class="form-text text-muted">Se creará si no existe</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="new_server" class="form-label">Servidor</label>
+                                <input type="text" class="form-control" id="new_server" name="server" 
+                                       placeholder="servidor.database.windows.net o localhost\SQLEXPRESS" required>
+                                <small class="form-text text-muted">Nombre o IP del servidor SQL destino</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="new_port" class="form-label">Puerto</label>
+                                <input type="text" class="form-control" id="new_port" name="port" 
+                                       value="1433">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="new_username" class="form-label">Usuario</label>
+                                <input type="text" class="form-control" id="new_username" name="username" 
+                                       placeholder="admin" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="new_password" class="form-label">Contraseña</label>
+                                <input type="password" class="form-control" id="new_password" name="password" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Importante:</strong> El usuario debe tener permisos de escritura (CREATE TABLE, INSERT, UPDATE) en la base de datos destino.
+                    </div>
+                    
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-success" id="btnCreateNew">
+                            <i class="fas fa-plug me-2"></i>Crear y Conectar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Información adicional -->
+        <div class="card mt-4 bg-light">
+            <div class="card-body">
+                <h6><i class="fas fa-info-circle me-2"></i>¿Qué se creará en el destino?</h6>
+                <ul class="mb-0">
+                    <li><strong>ProcesosGuardados:</strong> Tabla de control que registra todos los procesos ejecutados</li>
+                    <li><strong>ResultadosProcesados_{nombre}:</strong> Tablas con los datos migrados desde el origen</li>
+                    <li>Todas las tablas se crean automáticamente si no existen</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de carga -->
+<div class="modal fade" id="loadingModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Conectando...</span>
+                </div>
+                <h5 id="loadingMessage">Probando conexión...</h5>
+                <p class="text-muted mb-0">Por favor espere</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Botón: Usar conexión existente
+    $('#btnUseExisting').click(function() {
+        const connectionId = $('#existing_connection').val();
+        const databaseName = $('#existing_database').val();
+        
+        if (!connectionId) {
+            alert('Por favor seleccione una conexión');
+            return;
+        }
+        
+        if (!databaseName) {
+            alert('Por favor especifique el nombre de la base de datos destino');
+            return;
+        }
+        
+        // Guardar en sessionStorage para que save_process lo use
+        sessionStorage.setItem('destination_connection_id', connectionId);
+        sessionStorage.setItem('destination_database', databaseName);
+        
+        // Mostrar mensaje de éxito y redirigir (o cerrar modal si viene de ahí)
+        alert('Configuración de destino guardada. Ahora puede continuar con el proceso.');
+        window.history.back();
+    });
+    
+    // Botón: Crear nueva conexión
+    $('#btnCreateNew').click(function() {
+        const form = $('#createNewForm')[0];
+        
+        if (!form.checkValidity()) {
+            form.classList.add('was-validated');
+            return;
+        }
+        
+        // Mostrar modal de carga
+        $('#loadingMessage').text('Probando conexión al servidor destino...');
+        $('#loadingModal').modal('show');
+        
+        // Enviar solicitud AJAX
+        $.ajax({
+            url: '{% url "automatizacion:configure_destination" %}',
+            type: 'POST',
+            data: {
+                action: 'create_new',
+                name: $('#new_name').val(),
+                server: $('#new_server').val(),
+                username: $('#new_username').val(),
+                password: $('#new_password').val(),
+                port: $('#new_port').val(),
+                database_name: $('#new_database').val(),
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            success: function(response) {
+                $('#loadingModal').modal('hide');
+                
+                if (response.success) {
+                    // Guardar en sessionStorage
+                    sessionStorage.setItem('destination_connection_id', response.connection_id);
+                    sessionStorage.setItem('destination_database', response.database_name);
+                    
+                    alert('✅ Conexión destino creada exitosamente: ' + response.connection_name);
+                    window.history.back();
+                } else {
+                    alert('Error: ' + (response.error || 'Error desconocido'));
+                }
+            },
+            error: function(xhr) {
+                $('#loadingModal').modal('hide');
+                
+                let errorMsg = 'Error al crear la conexión';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMsg = xhr.responseJSON.error;
+                }
+                alert('❌ ' + errorMsg);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

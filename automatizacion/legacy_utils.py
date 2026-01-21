@@ -769,6 +769,149 @@ class SQLServerConnector:
         finally:
             if self.conn:
                 self.disconnect()
+    
+    def create_procesos_guardados_table(self):
+        """
+        Crea la tabla ProcesosGuardados en la base de datos destino si no existe.
+        Esta tabla centraliza el control de todos los procesos ejecutados.
+        
+        Returns:
+            bool: True si se creó exitosamente o ya existe, False en caso de error
+        """
+        if not self.conn and not self.connect():
+            print("❌ No se pudo conectar para crear tabla ProcesosGuardados")
+            return False
+        
+        try:
+            cursor = self.conn.cursor()
+            
+            # Verificar si la tabla ya existe
+            cursor.execute("""
+                SELECT COUNT(*) 
+                FROM INFORMATION_SCHEMA.TABLES 
+                WHERE TABLE_NAME = 'ProcesosGuardados'
+            """)
+            
+            exists = cursor.fetchone()[0] > 0
+            
+            if exists:
+                print("✅ Tabla ProcesosGuardados ya existe")
+                return True
+            
+            # Crear la tabla
+            create_table_sql = """
+            CREATE TABLE ProcesosGuardados (
+                Id INT IDENTITY(1,1) PRIMARY KEY,
+                NombreProceso NVARCHAR(255) NOT NULL UNIQUE,
+                TipoFuente NVARCHAR(50),
+                Fuente NVARCHAR(255),
+                HojaTabla NVARCHAR(255),
+                ColumnasSeleccionadas NVARCHAR(MAX),
+                BaseDatosDestino NVARCHAR(100),
+                FechaCreacion DATETIME DEFAULT GETDATE(),
+                UltimaEjecucion DATETIME,
+                EstadoUltimaEjecucion NVARCHAR(50),
+                Observaciones NVARCHAR(MAX)
+            )
+            """
+            
+            cursor.execute(create_table_sql)
+            self.conn.commit()
+            
+            print("✅ Tabla ProcesosGuardados creada exitosamente")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error creando tabla ProcesosGuardados: {str(e)}")
+            return False
+    
+    def upsert_proceso_guardado(self, proceso_data):
+        """
+        Inserta o actualiza un registro en ProcesosGuardados.
+        
+        Args:
+            proceso_data (dict): Diccionario con los datos del proceso
+                - NombreProceso: str (requerido)
+                - TipoFuente: str
+                - Fuente: str
+                - HojaTabla: str
+                - ColumnasSeleccionadas: str
+                - BaseDatosDestino: str
+                - UltimaEjecucion: datetime
+                - EstadoUltimaEjecucion: str
+                - Observaciones: str
+        
+        Returns:
+            bool: True si fue exitoso, False en caso contrario
+        """
+        if not self.conn and not self.connect():
+            print("❌ No se pudo conectar para upsert en ProcesosGuardados")
+            return False
+        
+        try:
+            cursor = self.conn.cursor()
+            nombre_proceso = proceso_data.get('NombreProceso')
+            
+            # Verificar si ya existe
+            cursor.execute(
+                "SELECT COUNT(*) FROM ProcesosGuardados WHERE NombreProceso = ?",
+                (nombre_proceso,)
+            )
+            exists = cursor.fetchone()[0] > 0
+            
+            if exists:
+                # Actualizar
+                update_sql = """
+                UPDATE ProcesosGuardados 
+                SET TipoFuente = ?,
+                    Fuente = ?,
+                    HojaTabla = ?,
+                    ColumnasSeleccionadas = ?,
+                    BaseDatosDestino = ?,
+                    UltimaEjecucion = ?,
+                    EstadoUltimaEjecucion = ?,
+                    Observaciones = ?
+                WHERE NombreProceso = ?
+                """
+                cursor.execute(update_sql, (
+                    proceso_data.get('TipoFuente'),
+                    proceso_data.get('Fuente'),
+                    proceso_data.get('HojaTabla'),
+                    proceso_data.get('ColumnasSeleccionadas'),
+                    proceso_data.get('BaseDatosDestino'),
+                    proceso_data.get('UltimaEjecucion'),
+                    proceso_data.get('EstadoUltimaEjecucion'),
+                    proceso_data.get('Observaciones'),
+                    nombre_proceso
+                ))
+                print(f"✅ Proceso '{nombre_proceso}' actualizado en ProcesosGuardados")
+            else:
+                # Insertar
+                insert_sql = """
+                INSERT INTO ProcesosGuardados 
+                (NombreProceso, TipoFuente, Fuente, HojaTabla, ColumnasSeleccionadas, 
+                 BaseDatosDestino, UltimaEjecucion, EstadoUltimaEjecucion, Observaciones)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """
+                cursor.execute(insert_sql, (
+                    nombre_proceso,
+                    proceso_data.get('TipoFuente'),
+                    proceso_data.get('Fuente'),
+                    proceso_data.get('HojaTabla'),
+                    proceso_data.get('ColumnasSeleccionadas'),
+                    proceso_data.get('BaseDatosDestino'),
+                    proceso_data.get('UltimaEjecucion'),
+                    proceso_data.get('EstadoUltimaEjecucion'),
+                    proceso_data.get('Observaciones')
+                ))
+                print(f"✅ Proceso '{nombre_proceso}' insertado en ProcesosGuardados")
+            
+            self.conn.commit()
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error en upsert de ProcesosGuardados: {str(e)}")
+            return False
 
 class TargetDBManager:
     """

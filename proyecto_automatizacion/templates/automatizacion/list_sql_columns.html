@@ -191,6 +191,18 @@
                             <small class="form-text text-muted">Base de datos donde se importarán los datos (fijo)</small>
                         </div>
                         
+                        <!-- Configuración de destino -->
+                        <div class="mb-3">
+                            <label class="form-label">Servidor SQL Destino</label>
+                            <div id="destinationInfo" class="alert alert-warning">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                <span id="destinationText">No configurado</span>
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="configureDestinationBtn">
+                                <i class="fas fa-cog me-1"></i>Configurar Destino
+                            </button>
+                        </div>
+                        
                         <div class="d-grid gap-2">
                             <button type="button" class="btn btn-primary" id="saveProcessBtn">
                                 <i class="fas fa-save me-1"></i>Guardar Proceso
@@ -451,6 +463,43 @@ $(document).ready(function() {
         });
     }
     
+    // 🆕 Verificar si hay destino configurado al cargar
+    function checkDestinationConfig() {
+        var destConnId = sessionStorage.getItem('destination_connection_id');
+        var destDB = sessionStorage.getItem('destination_database');
+        
+        if (destConnId && destDB) {
+            $('#destinationInfo')
+                .removeClass('alert-warning')
+                .addClass('alert-success');
+            $('#destinationText').html('<i class="fas fa-check-circle me-2"></i>Destino configurado: ' + destDB);
+            return true;
+        } else {
+            $('#destinationInfo')
+                .removeClass('alert-success')
+                .addClass('alert-warning');
+            $('#destinationText').html('<i class="fas fa-exclamation-circle me-2"></i>No configurado');
+            return false;
+        }
+    }
+    
+    // Verificar destino al cargar la página
+    checkDestinationConfig();
+    
+    // 🆕 Botón para configurar destino
+    $('#configureDestinationBtn').click(function() {
+        // Abrir ventana para configurar destino
+        window.open('{% url "automatizacion:configure_destination" %}', '_blank', 'width=900,height=700');
+        
+        // Escuchar cambios en sessionStorage
+        var checkInterval = setInterval(function() {
+            if (checkDestinationConfig()) {
+                clearInterval(checkInterval);
+                showMessage('✅ Destino configurado correctamente', 'success');
+            }
+        }, 1000);
+    });
+    
     // Botón para seleccionar columnas
     $('#selectColumnsBtn').click(function() {
         // Verificar que haya columnas seleccionadas
@@ -476,6 +525,19 @@ $(document).ready(function() {
         // Verificar que haya columnas seleccionadas
         if ($('.column-checkbox:checked').length === 0) {
             showMessage('Debe seleccionar al menos una columna', 'warning');
+            return;
+        }
+        
+        // 🆕 Verificar que haya destino configurado
+        var destConnId = sessionStorage.getItem('destination_connection_id');
+        var destDB = sessionStorage.getItem('destination_database');
+        
+        if (!destConnId || !destDB) {
+            showMessage('⚠️ Debe configurar el destino antes de guardar el proceso', 'warning');
+            $('#configureDestinationBtn').addClass('btn-pulse');  // Animación para llamar atención
+            setTimeout(function() {
+                $('#configureDestinationBtn').removeClass('btn-pulse');
+            }, 2000);
             return;
         }
         
@@ -513,7 +575,10 @@ $(document).ready(function() {
                 '{{ full_table_name }}': selectedColumns
             },
             column_mappings: Object.keys(columnMappings).length > 0 ? columnMappings : null,
-            target_db: $('#targetDB').val()
+            target_db: $('#targetDB').val(),
+            // 🆕 Agregar configuración de destino
+            destination_connection_id: parseInt(destConnId),
+            destination_database: destDB
         };
         
         // IMPORTANTE: Solo agregar process_id si realmente existe

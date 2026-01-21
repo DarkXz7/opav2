@@ -901,6 +901,91 @@ def list_sql_columns(request, connection_id, table_name):
     
     return render(request, 'automatizacion/list_sql_columns.html', context)
 
+def configure_destination(request):
+    """
+    Vista para configurar la conexión destino donde se guardarán los ResultadosProcesados y ProcesosGuardados.
+    Permite seleccionar una conexión existente o crear una nueva.
+    """
+    if request.method == 'POST':
+        action = request.POST.get('action')  # 'use_existing' o 'create_new'
+        
+        if action == 'use_existing':
+            # Usar conexión existente
+            connection_id = request.POST.get('connection_id')
+            database_name = request.POST.get('database_name')
+            
+            if not connection_id or not database_name:
+                messages.error(request, 'Debe seleccionar una conexión y especificar una base de datos')
+                return redirect('automatizacion:configure_destination')
+            
+            connection = get_object_or_404(DatabaseConnection, pk=connection_id)
+            
+            # Retornar datos como JSON para manejar desde el frontend
+            return JsonResponse({
+                'success': True,
+                'connection_id': connection.id,
+                'connection_name': connection.name,
+                'database_name': database_name
+            })
+            
+        elif action == 'create_new':
+            # Crear nueva conexión destino
+            name = request.POST.get('name')
+            server = request.POST.get('server')
+            username = request.POST.get('username')
+            password = request.POST.get('password')
+            port = request.POST.get('port', '1433')
+            database_name = request.POST.get('database_name')
+            
+            # Validar datos
+            if not all([name, server, username, password, database_name]):
+                return JsonResponse({
+                    'error': 'Todos los campos son obligatorios'
+                }, status=400)
+            
+            # Probar conexión
+            connector = SQLServerConnector(server, username, password, port)
+            if not connector.test_connection():
+                return JsonResponse({
+                    'error': 'No se pudo conectar al servidor destino. Verifique las credenciales.'
+                }, status=400)
+            
+            # Verificar si ya existe una conexión con el mismo nombre
+            existing_connection = DatabaseConnection.objects.filter(name=name).first()
+            
+            if existing_connection:
+                return JsonResponse({
+                    'error': f'Ya existe una conexión con el nombre "{name}". Use una existente o elija otro nombre.'
+                }, status=400)
+            
+            # Crear la conexión
+            connection = DatabaseConnection.objects.create(
+                name=name,
+                server=server,
+                username=username,
+                password=password,
+                port=port,
+                last_used=timezone.now()
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'connection_id': connection.id,
+                'connection_name': connection.name,
+                'database_name': database_name
+            })
+    
+    # GET: Mostrar formulario
+    # Obtener todas las conexiones disponibles para el selector
+    connections = DatabaseConnection.objects.all().order_by('-last_used')
+    
+    context = {
+        'connections': connections
+    }
+    
+    return render(request, 'automatizacion/configure_destination.html', context)
+
+
 # Vistas para API AJAX
 
 @csrf_exempt
@@ -1645,4 +1730,5 @@ def modern_view(request):
         'saved_connections': saved_connections
     }
     return render(request, 'base.html', context)
+
 
