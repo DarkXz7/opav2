@@ -19,7 +19,7 @@
         
         <!-- Breadcrumb integrado en el header -->
         <div class="btn-actions-pane-right">
-            <nav aria-label="breadcrumb">
+            <nav aria-label="breadcrumb" class="breadcrumb-nav">
                 <ol class="breadcrumb breadcrumb-sm mb-0">
                     <li class="breadcrumb-item">
                         <a href="{% url 'automatizacion:index' %}" class="text-decoration-none">Inicio</a>
@@ -198,7 +198,7 @@
 {% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'automatizacion/styles/new_process.css' %}">
+<link rel="stylesheet" href="{% static 'automatizacion/styles/new_process.css' %}?v=2">
 {% endblock %}
 
 {% block extra_js %}

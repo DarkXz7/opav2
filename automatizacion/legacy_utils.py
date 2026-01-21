@@ -687,14 +687,11 @@ class SQLServerConnector:
                     'type': type_info,
                     'nullable': is_nullable == 'YES',
                 })
-                
+            
             return columns
+            
         except Exception as e:
-            print(f"Error al obtener columnas: {str(e)}")
             return []
-        finally:
-            if self.conn:
-                self.disconnect()
     
     def get_table_preview(self, schema, table, max_rows=10):
         """Obtiene una vista previa de una tabla"""
@@ -704,16 +701,21 @@ class SQLServerConnector:
         try:
             # Obtener todas las columnas primero
             columns = self.get_table_columns(schema, table)
+            if not columns:
+                return None
+                
             column_names = [col['name'] for col in columns]
             
             cursor = self.conn.cursor()
             
             # Contar filas totales
-            cursor.execute(f"SELECT COUNT(*) FROM [{schema}].[{table}]")
+            count_query = f"SELECT COUNT(*) FROM [{schema}].[{table}]"
+            cursor.execute(count_query)
             total_rows = cursor.fetchone()[0]
             
             # Obtener muestra de datos
-            cursor.execute(f"SELECT TOP {max_rows} * FROM [{schema}].[{table}]")
+            data_query = f"SELECT TOP {max_rows} * FROM [{schema}].[{table}]"
+            cursor.execute(data_query)
             
             # Crear diccionario de resultados
             data = []
@@ -726,17 +728,16 @@ class SQLServerConnector:
                     row_dict[column_names[i]] = value
                 data.append(row_dict)
             
-            return {
+            result = {
                 'columns': column_names,
                 'data': data,
                 'total_rows': total_rows,
             }
+            
+            return result
+            
         except Exception as e:
-            print(f"Error al obtener vista previa: {str(e)}")
             return None
-        finally:
-            if self.conn:
-                self.disconnect()
     
     def read_table_data(self, schema, table, selected_columns=None):
         """Lee datos de una tabla, opcionalmente filtrando columnas"""

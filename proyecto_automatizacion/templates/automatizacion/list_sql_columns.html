@@ -129,7 +129,7 @@
                     <h2 class="h5 mb-0 text-dark">Vista Previa de Datos</h2>
                 </div>
                 <div class="card-body">
-                    {% if preview %}
+                    {% if preview and preview.data %}
                         <p class="text-muted mb-2">Mostrando {{ preview.data|length }} de {{ preview.total_rows }} filas</p>
                         <div class="table-responsive">
                             <table class="table table-sm table-striped">
@@ -151,9 +151,17 @@
                                 </tbody>
                             </table>
                         </div>
+                    {% elif preview and not preview.data %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            La tabla no contiene datos o está vacía.
+                            <br><small class="mt-1 d-block">Total de filas: {{ preview.total_rows|default:"0" }}</small>
+                        </div>
                     {% else %}
                         <div class="alert alert-warning">
-                            No se pudo obtener una vista previa de los datos
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            No se pudo obtener una vista previa de los datos. 
+                            <br><small class="mt-1 d-block">Verifica que la tabla existe y que tienes permisos de lectura.</small>
                         </div>
                     {% endif %}
                 </div>
@@ -235,6 +243,25 @@
 </div>
 
 {% block extra_js %}
+<style>
+/* Estilos para las columnas seleccionadas en la vista previa */
+.column-selected {
+    background-color: #e3f2fd !important; /* Azul claro similar a Excel */
+    border-left: 3px solid #2196F3 !important; /* Borde azul a la izquierda */
+    font-weight: 500;
+}
+
+.column-selected:hover {
+    background-color: #bbdefb !important; /* Un poco más oscuro al hacer hover */
+}
+
+/* Estilos para el header de las columnas seleccionadas */
+thead .column-selected {
+    background-color: #2196F3 !important; /* Azul más intenso para el header */
+    color: white !important;
+    border-bottom: 2px solid #1976D2 !important;
+}
+</style>
 <script>
 // Función para mostrar mensajes elegantes - VERSION SIMPLIFICADA
 function showMessage(message, type) {
@@ -303,6 +330,13 @@ $(document).ready(function() {
     };
     console.log('Función testMessage() disponible en la consola si necesitas hacer pruebas');
     
+    // 🆕 IMPORTANTE: Ocultar todas las columnas inicialmente al cargar la página
+    // hasta que el usuario seleccione alguna
+    setTimeout(function() {
+        updatePreview();
+        console.log('Vista previa inicializada - columnas ocultas hasta seleccionar');
+    }, 100);
+    
     // Obtener ID de proceso SOLO de la URL (NO usar localStorage aquí)
     // El localStorage puede contener IDs de procesos anteriores y causar problemas
     var urlParams = new URLSearchParams(window.location.search);
@@ -336,6 +370,9 @@ $(document).ready(function() {
         
         // Habilitar/deshabilitar los inputs de renombre
         $('.column-rename-input').prop('disabled', !isChecked);
+        
+        // 🆕 Actualizar vista previa
+        updatePreview();
     });
     
     // Actualizar "seleccionar todo" cuando se cambian las selecciones individuales
@@ -353,7 +390,66 @@ $(document).ready(function() {
         } else {
             $('#selectAllColumns').prop('checked', false);
         }
+        
+        // 🆕 Actualizar vista previa en tiempo real
+        updatePreview();
     });
+    
+    // 🆕 Función para actualizar la vista previa de datos dinámicamente
+    function updatePreview() {
+        var selectedColumns = [];
+        $('.column-checkbox:checked').each(function() {
+            selectedColumns.push($(this).val());
+        });
+        
+        console.log('Columnas seleccionadas para preview:', selectedColumns);
+        
+        // Selector MUY específico: la tabla dentro del card que tiene el header "Vista Previa de Datos"
+        var $previewCard = $('.col-lg-5 .card.mb-4').filter(function() {
+            return $(this).find('.card-header h2').text().trim() === 'Vista Previa de Datos';
+        });
+        var $previewTable = $previewCard.find('.table-responsive table');
+        
+        console.log('Preview card encontrado:', $previewCard.length);
+        console.log('Preview table encontrado:', $previewTable.length);
+        
+        // Si no hay columnas seleccionadas, OCULTAR todas en la vista previa (cambio estético)
+        if (selectedColumns.length === 0) {
+            $previewTable.find('th, td').hide();
+            console.log('Ocultando todas las columnas de la vista previa (ninguna seleccionada)');
+            return;
+        }
+        
+        // Ocultar/mostrar columnas SOLO en la tabla de vista previa
+        $previewTable.find('thead tr th').each(function(index) {
+            var columnName = $(this).text().trim();
+            var shouldShow = selectedColumns.includes(columnName);
+            
+            console.log('Columna "' + columnName + '" en índice ' + index + ': ' + (shouldShow ? 'MOSTRAR' : 'OCULTAR'));
+            
+            // Remover clases de resaltado primero
+            $(this).removeClass('column-selected');
+            
+            // Mostrar/ocultar header y agregar resaltado si está seleccionada
+            if (shouldShow) {
+                $(this).show().addClass('column-selected');
+            } else {
+                $(this).hide();
+            }
+            
+            // Mostrar/ocultar todas las celdas de esta columna en el tbody
+            $previewTable.find('tbody tr').each(function() {
+                var $cell = $(this).find('td').eq(index);
+                $cell.removeClass('column-selected');
+                
+                if (shouldShow) {
+                    $cell.show().addClass('column-selected');
+                } else {
+                    $cell.hide();
+                }
+            });
+        });
+    }
     
     // Botón para seleccionar columnas
     $('#selectColumnsBtn').click(function() {

@@ -1,0 +1,69 @@
+/* Estilos para cards de detalles */
+.card {
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    border-radius: 0.5rem 0.5rem 0 0 !important;
+    padding: 1rem;
+}
+
+.card-body {
+    background-color: #ffffff;
+    padding: 1.5rem;
+    display: block !important; /* IMPORTANTE: Asegurar visibilidad */
+}
+
+/* Botón de toggle */
+.toggle-details {
+    transition: all 0.3s ease;
+}
+
+.toggle-details:hover {
+    background-color: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+
+/* Contenedor de detalles */
+.card-details {
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.card-details.show {
+    display: block !important;
+}
+
+/* Mejorar visualización de columnas */
+.bg-light.border {
+    transition: background-color 0.2s ease;
+    border: 1px solid #dee2e6 !important;
+}
+
+.bg-light.border:hover {
+    background-color: #e3f2fd !important;
+    border-color: #2196f3 !important;
+}
+
+/* Columnas con preview de datos */
+.column-preview {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.column-preview:hover {
+    background-color: #cfe9ff !important;
+    border-color: #0d6efd !important;
+    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.15);
+    transform: translateY(-2px);
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}

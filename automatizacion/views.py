@@ -861,8 +861,24 @@ def list_sql_columns(request, connection_id, table_name):
         messages.error(request, f'Error al procesar el nombre de la tabla: {str(e)}')
         return redirect('automatizacion:list_sql_tables', connection_id=connection_id)
     
-    columns = connector.get_table_columns(schema, table)
+    # 🔧 FIX: Llamar get_table_preview primero, ya que get_table_columns cierra la conexión
     preview = connector.get_table_preview(schema, table)
+    columns = connector.get_table_columns(schema, table)
+    
+    # � Cerrar la conexión manualmente al final
+    connector.disconnect()
+    
+    # 🔍 DEBUG: Verificar qué datos se están obteniendo
+    print(f"🔍 DEBUG list_sql_columns:")
+    print(f"   Schema: {schema}, Table: {table}")
+    print(f"   Columns obtenidas: {len(columns) if columns else 0}")
+    print(f"   Preview obtenido: {preview is not None}")
+    if preview:
+        print(f"   Preview columns: {preview.get('columns', [])}")
+        print(f"   Preview data rows: {len(preview.get('data', []))}")
+        print(f"   Preview total_rows: {preview.get('total_rows', 0)}")
+    else:
+        print(f"   ❌ Preview es None - revisa los errores arriba")
     
     # Buscar fuente de datos para esta conexiÃ³n
     source, created = DataSource.objects.get_or_create(

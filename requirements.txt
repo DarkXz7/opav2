@@ -4,7 +4,10 @@ asgiref==3.11.0
 sqlparse==0.5.4
 
 # Database Drivers
+# django-mssql-backend es el backend oficial para SQL Server con Django
+# Soporta SQL Server 2012 en adelante incluyendo versiones recientes
 pyodbc==5.3.0
+django-mssql-backend>=2.8.1
 
 # Data Processing & Analysis
 pandas==2.3.3

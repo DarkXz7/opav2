@@ -1,0 +1,90 @@
+/* ===== BASE MODERN TEMPLATE STYLES ===== */
+
+/* Estilos personalizados para el sistema Excel-SQL */
+.system-header {
+    background: linear-gradient(135deg, #0e7490 0%, #0891b2 100%);
+}
+
+.card-modern {
+    border: none;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border-radius: 0.75rem;
+    transition: all 0.3s ease;
+}
+
+.card-modern:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
+}
+
+.btn-modern {
+    border-radius: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-primary-modern {
+    background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+    border: none;
+    color: white;
+}
+
+.btn-primary-modern:hover {
+    background: linear-gradient(135deg, #0e7490 0%, #0f766e 100%);
+    transform: translateY(-1px);
+}
+
+.nav-modern .nav-link {
+    color: #374151;
+    font-weight: 500;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.nav-modern .nav-link:hover {
+    background-color: #f3f4f6;
+    color: #0891b2;
+}
+
+.nav-modern .nav-link.active {
+    background-color: #0891b2;
+    color: white;
+}
+
+/* Loading spinner styles from original */
+.wheel-and-hamster {
+    --dur: 1s;
+    position: fixed;
+    top: 90%;
+    left: 11%;
+    transform: translate(-70%, -70%);
+    width: 12em;
+    height: 12em;
+    font-size: 14px;
+    z-index: 50;
+    pointer-events: none;
+}
+
+.wheel,
+.hamster,
+.hamster div,
+.spoke {
+    position: absolute;
+}
+
+.wheel,
+.spoke {
+    border-radius: 50%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.wheel {
+    background: radial-gradient(circle at center, rgba(14, 116, 144, 0.2) 40%, rgba(14, 116, 144, 0.5) 100%);
+    border: 4px solid #0e7490;
+    box-shadow: 0 0 15px rgba(14, 116, 144, 0.7), inset 0 0 10px rgba(14, 116, 144, 0.4);
+}

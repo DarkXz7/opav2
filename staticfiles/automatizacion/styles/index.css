@@ -1,0 +1,139 @@
+/* ===== INDEX PAGE STYLES ===== */
+
+/* Estilos para las listas de procesos y conexiones */
+.processes-list, .connections-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.process-item, .connection-item {
+    transition: all 0.3s ease;
+    border-radius: 0 !important;
+}
+
+.process-item:hover, .connection-item:hover {
+    background-color: #f8f9fa;
+    transform: translateX(2px);
+}
+
+.process-icon, .connection-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #e3f2fd 0%, #f8f9fa 100%);
+}
+
+.process-name, .connection-name {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.process-details, .connection-details {
+    line-height: 1.2;
+}
+
+.process-badges .badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.process-actions, .connection-actions {
+    display: flex;
+    align-items: center;
+}
+
+.process-actions .btn, .connection-actions .btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.process-actions .btn:hover, .connection-actions .btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+/* Empty state styles */
+.empty-state {
+    padding: 2rem 1rem;
+}
+
+.empty-icon i {
+    opacity: 0.5;
+}
+
+/* Card footer improvements */
+.card-footer {
+    border-top: 1px solid #e9ecef;
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+}
+
+.footer-info small {
+    font-style: italic;
+}
+
+.footer-actions .btn {
+    transition: all 0.3s ease;
+}
+
+.footer-actions .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* Badge in header */
+.card-header .badge {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.65rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .process-item, .connection-item {
+        padding: 1rem !important;
+    }
+    
+    .process-icon, .connection-icon {
+        width: 35px;
+        height: 35px;
+    }
+    
+    .process-name, .connection-name {
+        font-size: 0.9rem;
+    }
+    
+    .footer-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .footer-actions .btn {
+        width: 100%;
+    }
+}
+
+/* Scroll styling for lists */
+.processes-list::-webkit-scrollbar, .connections-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.processes-list::-webkit-scrollbar-track, .connections-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.processes-list::-webkit-scrollbar-thumb, .connections-list::-webkit-scrollbar-thumb {
+    background: #0e7490;
+    border-radius: 10px;
+}
+
+.processes-list::-webkit-scrollbar-thumb:hover, .connections-list::-webkit-scrollbar-thumb:hover {
+    background: #0891b2;
+}

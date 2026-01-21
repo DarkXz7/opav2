@@ -915,7 +915,8 @@ class MigrationProcess(models.Model):
                     parametros_hoja.update({
                         'sheet_name': sheet_name,
                         'parent_process_id': main_proceso_id,
-                        'is_excel_sheet': True
+                        'is_excel_sheet': True,
+                        'sheet_index': hoja_index  # 🆕 Agregar índice de hoja
                     })
                     
                     # Iniciar proceso individual para esta hoja
@@ -963,8 +964,9 @@ class MigrationProcess(models.Model):
                             custom_sheet_name = sheet_mappings[sheet_name]
                             print(f"🔄 DEBUG: Usando nombre personalizado para hoja '{sheet_name}' → '{custom_sheet_name}'")
                     
-                    # Generar nombre de tabla con nomenclatura dinámica: Proceso_Hoja
-                    nombre_tabla_destino = f"{self.name}_{custom_sheet_name}".replace(' ', '_').replace('-', '_')
+                    # 🔧 FIX: Generar nombre de tabla sin número en el nombre de la hoja, solo usar índice del loop
+                    # Formato: Proceso_hoja1, Proceso_hoja2, etc. (donde el número es el índice del loop)
+                    nombre_tabla_destino = f"{self.name}_hoja{hoja_index}".replace(' ', '_').replace('-', '_')
                     # Limpiar caracteres especiales del nombre
                     import re
                     nombre_tabla_destino = re.sub(r'[^\w]', '_', nombre_tabla_destino)
@@ -1193,7 +1195,7 @@ class MigrationProcess(models.Model):
     
     def _extract_sql_data(self):
         """Extrae datos de base de datos SQL"""
-        from .utils import SQLServerConnector
+        from .legacy_utils import SQLServerConnector
         import json
         import pyodbc
         

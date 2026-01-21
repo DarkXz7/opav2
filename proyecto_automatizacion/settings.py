@@ -84,12 +84,10 @@ DATABASES = {
         'NAME': 'LogsAutomatizacion',
         'USER': 'miguel',
         'PASSWORD': '16474791@',
-        'HOST': 'localhost\\SQLEXPRESS',  # Instancia nombrada de SQL Express
-        'PORT': '',                      # Dejamos el puerto vacío para instancias nombradas
+        'HOST': 'localhost\\SQLEXPRESS',
+        'PORT': '',
         'OPTIONS': {
             'driver': 'ODBC Driver 17 for SQL Server',
-            'unicode_results': True,
-            'host_is_server': True,
         },
     },
     'destino': {
@@ -97,27 +95,21 @@ DATABASES = {
         'NAME': 'DestinoAutomatizacion',
         'USER': 'miguel',
         'PASSWORD': '16474791@',
-        'HOST': 'localhost\\SQLEXPRESS',  # misma instancia
+        'HOST': 'localhost\\SQLEXPRESS',
         'PORT': '',
         'OPTIONS': {
             'driver': 'ODBC Driver 17 for SQL Server',
-            'unicode_results': True,
-            'host_is_server': True,
         },
     },
-    # Alias adicional para tabla ProcesosGuardados (misma base que 'destino')
-    # Se usa específicamente para el modelo que sincroniza procesos Django → SQL Server
     'sqlserver': {
         'ENGINE': 'mssql',
-        'NAME': 'DestinoAutomatizacion',  # Misma base de datos que 'destino'
+        'NAME': 'DestinoAutomatizacion',
         'USER': 'miguel',
         'PASSWORD': '16474791@',
         'HOST': 'localhost\\SQLEXPRESS',
         'PORT': '',
         'OPTIONS': {
             'driver': 'ODBC Driver 17 for SQL Server',
-            'unicode_results': True,
-            'host_is_server': True,
         },
     }
 }
