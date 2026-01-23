@@ -881,7 +881,7 @@ def list_sql_columns(request, connection_id, table_name):
         print(f"   ❌ Preview es None - revisa los errores arriba")
     
     # Buscar fuente de datos para esta conexiÃ³n
-    source, created = DataSource.objects.get_or_create(
+    source, created = DataSource.objects.get_or_create( quit
         source_type='sql',
         connection=connection,
         defaults={'name': f"SQL - {connection.name}"}
